@@ -23,10 +23,7 @@ func (r *Repo) Inc(name string) {
 	}
 }
 
-
 func (r *Repo) Print() {
 	fmt.Println(123123123123)
 	fmt.Println(r.metrics)
 }
-
-

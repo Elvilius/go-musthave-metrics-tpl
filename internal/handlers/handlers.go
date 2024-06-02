@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -9,8 +8,10 @@ import (
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/repo"
 )
 
-const gauge = "gauge"
-const counter = "counter"
+const (
+	gauge   = "gauge"
+	counter = "counter"
+)
 
 type Handler struct {
 	repo *repo.Repo
@@ -32,17 +33,17 @@ func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	metricName := parts[0]
-	metricType := parts[1]
+	metricType := parts[0]
+	metricName := parts[1]
 	metricValue := parts[2]
-
-	if metricType == "" || metricValue == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 
 	if metricName == "" {
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if metricType == "" || metricValue == "" {
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -52,7 +53,6 @@ func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(metricType)
 	switch metricType {
 	case gauge:
 		h.repo.Gauge(metricName, value)
