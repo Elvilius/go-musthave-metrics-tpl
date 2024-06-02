@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/repo"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
 )
 
 const (
@@ -14,11 +14,11 @@ const (
 )
 
 type Handler struct {
-	repo *repo.Repo
+	s storage.Storage
 }
 
-func NewHandler(repo *repo.Repo) Handler {
-	return Handler{repo: repo}
+func NewHandler(s storage.Storage) Handler {
+	return Handler{s: s}
 }
 
 func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -55,9 +55,9 @@ func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	switch metricType {
 	case gauge:
-		h.repo.Gauge(metricName, value)
+		h.s.Gauge(metricName, value)
 	case counter:
-		h.repo.Inc(metricName)
+		h.s.Inc(metricName)
 	default:
 		{
 			w.WriteHeader(http.StatusBadRequest)

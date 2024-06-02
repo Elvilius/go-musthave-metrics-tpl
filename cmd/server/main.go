@@ -4,14 +4,14 @@ import (
 	"net/http"
 
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/repo"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
 )
 
 func main() {
 	mux := http.NewServeMux()
 
-	repo := repo.NewRepo()
-	handler := handler.NewHandler(repo)
+	memStorage := storage.NewMemStorage()
+	handler := handler.NewHandler(memStorage)
 
 	mux.HandleFunc("/update/", handler.Update)
 
