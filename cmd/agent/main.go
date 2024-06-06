@@ -20,11 +20,13 @@ type Metric struct {
 	MType MetricType
 	Value float64
 }
+var pollCount float64
 
 func collectMetrics() map[string]Metric {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
+	pollCount++
 	metrics := make(map[string]Metric)
 	metrics["Alloc"] = Metric{Name: "Alloc", MType: Gauge, Value: (float64(memStats.Alloc))}
 	metrics["BuckHashSys"] = Metric{Name: "BuckHashSys", MType: Gauge, Value: (float64(memStats.BuckHashSys))}
@@ -54,7 +56,7 @@ func collectMetrics() map[string]Metric {
 	metrics["Sys"] = Metric{Name: "Sys", MType: Gauge, Value: (float64(memStats.Sys))}
 	metrics["TotalAlloc"] = Metric{Name: "TotalAlloc", MType: Gauge, Value: (float64(memStats.TotalAlloc))}
 	metrics["RandomValue"] = Metric{Name: "RandomValue", MType: Gauge, Value: (rand.Float64())}
-	metrics["PollCount"] = Metric{Name: "PollCount", MType: Counter}
+	metrics["PollCount"] = Metric{Name: "PollCount", MType: Counter, Value: pollCount}
 
 	return metrics
 }
@@ -84,7 +86,6 @@ func main() {
 	pollInterval := 2 * time.Second
 	reportInterval := 10 * time.Second
 	client := http.Client{}
-	var pollCount float64
 
 	for {
 		metrics := collectMetrics()
@@ -94,10 +95,6 @@ func main() {
 			time.Sleep(reportInterval)
 		}
 		time.Sleep(pollInterval)
-		pollCount++
-		m, ok := metrics["PollCount"]
-		if ok {
-			m.Value = pollCount
-		}
+		
 	}
 }
