@@ -77,7 +77,7 @@ func sendMetric(client http.Client, metric Metric) {
 	if err != nil {
 		panic(err)
 	}
-	response.Body.Close()
+	defer response.Body.Close()
 }
 
 func main() {
