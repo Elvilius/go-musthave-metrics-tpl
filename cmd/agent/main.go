@@ -96,7 +96,7 @@ func main() {
 		time.Sleep(pollInterval)
 		pollCount++
 		m, ok := metrics["PollCount"]
-		if !ok {
+		if ok {
 			m.Value = pollCount
 		}
 	}
