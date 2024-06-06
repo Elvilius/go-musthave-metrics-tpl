@@ -84,15 +84,16 @@ func sendMetric(client http.Client, metric Metric) {
 
 func main() {
 	pollInterval := 2 * time.Second
-	reportInterval := 10 * time.Second
+	// reportInterval := 10 * time.Second
 	client := http.Client{}
 
 	for {
 		metrics := collectMetrics()
 
+		fmt.Println(metrics["PollCount"].Value)
 		for _, metric := range metrics {
 			sendMetric(client, metric)
-			time.Sleep(reportInterval)
+			//time.Sleep(reportInterval)
 		}
 		time.Sleep(pollInterval)
 		
