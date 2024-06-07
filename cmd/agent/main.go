@@ -75,6 +75,7 @@ func sendMetric(client http.Client, metric Metric) {
 	}
 	request.Header.Set("Content-Type", "text/plain")
 
+	fmt.Println(err)
 	response, err := client.Do(request)
 	if err != nil {
 		panic(err)
