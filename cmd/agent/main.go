@@ -70,6 +70,7 @@ func sendMetric(client http.Client, metric Metric) {
 	}
 
 	request, err := http.NewRequest(http.MethodPost, url, nil)
+	fmt.Println(err)
 	if err != nil {
 		panic(err)
 	}
