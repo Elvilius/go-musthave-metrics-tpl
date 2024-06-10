@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
-	_"time"
+	"time"
 )
 
 const (
@@ -77,13 +77,11 @@ func sendMetric(metric Metric) {
 }
 
 func main() {
-	for {
 		metrics := collectMetrics()
-		//time.Sleep(pollInterval)
+		time.Sleep(pollInterval)
 
 		for _, metric := range metrics {
 			sendMetric(metric)
-			//time.Sleep(reportInterval)
+			time.Sleep(reportInterval)
 		}
-	}
 }
