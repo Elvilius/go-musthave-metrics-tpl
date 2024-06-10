@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	_"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -70,7 +70,7 @@ func collectMetrics() map[string]Metric {
 }
 
 func sendMetric(client http.Client, metric Metric) {
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value), nil)
+	req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/update/gauge/StackSys/1", nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
