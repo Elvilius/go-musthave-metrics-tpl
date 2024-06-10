@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
-	_"time"
+	"time"
 )
 
 const (
@@ -70,19 +70,25 @@ func collectMetrics() map[string]Metric {
 
 func sendMetric(metric Metric) {
 	resp, err := http.Post(fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value), "text/plain", nil)
-		if err != nil {
-			 panic(err)
-		}
-		
-		defer resp.Body.Close()
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
 }
 
 func main() {
-		metrics := collectMetrics()
-		//time.Sleep(pollInterval)
+	var metrics map[string]Metric
 
-		for _, metric := range metrics {
-			sendMetric(metric)
-			//time.Sleep(reportInterval)
+	go func() {
+		for range time.Tick(pollInterval * time.Second) {
+			metrics = collectMetrics()
 		}
+	}()
+
+	for range time.Tick(reportInterval * time.Second) {
+		for _, m := range metrics {
+			sendMetric(m)
+			metrics = nil
+		}
+	}
 }
