@@ -6,5 +6,4 @@ type Storage interface {
 	Save(metricType string, metricName string, value any)
 	Get(metricType, metricName string) (domain.Metric, bool)
 	GetAll() []domain.Metric
-	Print() []domain.Metric
 }

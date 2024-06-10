@@ -1,8 +1,6 @@
 package storage
 
 import (
-	"fmt"
-
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/domain"
 )
 
@@ -15,16 +13,18 @@ func NewMemStorage() Storage {
 }
 
 func (r *MemStorage) Save(metricType string, metricName string, value any) {
-	if metricType == domain.Gauge {
+	existMetric, ok := r.Get(metricType, metricName)
+	switch metricType {
+	case domain.Gauge:
 		r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: value}
-	} else if metricType == domain.Counter {
-		existMetric, ok := r.Get(metricType, metricName)
-		if !ok {
-			r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: 1}
+	case domain.Counter:
+		var newValue int
+		if ok {
+			newValue = existMetric.Value.(int) + value.(int)
 		} else {
-			existMetric.Value = existMetric.Value.(int) + 1
-			r.metrics[metricName] = existMetric
+			newValue = value.(int)
 		}
+		r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: newValue}
 	}
 }
 
@@ -44,14 +44,6 @@ func (r *MemStorage) GetAll() []domain.Metric {
 	all := make([]domain.Metric, 0, len(r.metrics))
 	for _, m := range r.metrics {
 		all = append(all, m)
-	}
-	return all
-}
-
-func (r *MemStorage) Print() []domain.Metric {
-	all := make([]domain.Metric, 0, len(r.metrics))
-	for _, m := range r.metrics {
-		fmt.Println(m)
 	}
 	return all
 }

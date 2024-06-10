@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -56,8 +55,6 @@ func (h Handler) Value(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
 	m, ok := h.s.Get(metricType, metricName)
-	fmt.Println(m)
-	h.s.Print()
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
