@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -53,11 +52,6 @@ func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	fmt.Println(metricType)
-	fmt.Println(metricName)
-	fmt.Println(metricValue)
-
 	switch metricType {
 	case gauge:
 		h.s.Gauge(metricName, value)
