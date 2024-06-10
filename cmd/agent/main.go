@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -70,23 +69,12 @@ func collectMetrics() map[string]Metric {
 }
 
 func sendMetric(client http.Client, metric Metric) {
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value), nil)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	req.Header.Set("Content-Type", "text/plain")
-
-	res, err := client.Do(req)
-	if err != nil {
-		log.Fatalln(err)
-		return
-	}
-
-	err = res.Body.Close()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
+	
+	resp, err := http.Post(fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value), "text/plain", nil)
+		if err != nil {
+			 panic(err)
+		}
+		defer resp.Body.Close()
 }
 
 func main() {
