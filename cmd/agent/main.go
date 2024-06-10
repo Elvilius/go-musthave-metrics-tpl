@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
-	"time"
+	_"time"
 )
 
 const (
