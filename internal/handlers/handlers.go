@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/domain"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
@@ -37,14 +36,9 @@ func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	value, err := strconv.ParseFloat(metricValue, 64)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	h.s.Save(metricType, metricName, value)
+	h.s.Save(metricType, metricName, metricValue)
 	w.WriteHeader(http.StatusOK)
 }
 
