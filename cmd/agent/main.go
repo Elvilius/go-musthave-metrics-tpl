@@ -68,7 +68,7 @@ func collectMetrics() map[string]Metric {
 	return metrics
 }
 
-func sendMetric(client http.Client, metric Metric) {
+func sendMetric(metric Metric) {
 	
 	resp, err := http.Post(fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value), "text/plain", nil)
 		if err != nil {
@@ -78,14 +78,12 @@ func sendMetric(client http.Client, metric Metric) {
 }
 
 func main() {
-	client := http.Client{}
-
 	for {
 		metrics := collectMetrics()
 		time.Sleep(pollInterval)
 
 		for _, metric := range metrics {
-			sendMetric(client, metric)
+			sendMetric(metric)
 			time.Sleep(reportInterval)
 		}
 	}
