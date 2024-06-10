@@ -2,10 +2,17 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
+)
+
+const (
+	pollInterval   = 2
+	reportInterval = 10
+	serverAddress  = "http://localhost:8080"
 )
 
 type MetricType string
@@ -20,13 +27,13 @@ type Metric struct {
 	MType MetricType
 	Value float64
 }
+
 var pollCount float64
 
 func collectMetrics() map[string]Metric {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	pollCount++
 	metrics := make(map[string]Metric)
 	metrics["Alloc"] = Metric{Name: "Alloc", MType: Gauge, Value: (float64(memStats.Alloc))}
 	metrics["BuckHashSys"] = Metric{Name: "BuckHashSys", MType: Gauge, Value: (float64(memStats.BuckHashSys))}
@@ -58,46 +65,39 @@ func collectMetrics() map[string]Metric {
 	metrics["RandomValue"] = Metric{Name: "RandomValue", MType: Gauge, Value: (rand.Float64())}
 	metrics["PollCount"] = Metric{Name: "PollCount", MType: Counter, Value: pollCount}
 
+	pollCount++
 	return metrics
 }
 
 func sendMetric(client http.Client, metric Metric) {
-	var url string
-	if metric.MType == Gauge {
-		url = fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value)
-	} else if metric.MType == Counter {
-		url = fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value), nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	req.Header.Set("Content-Type", "text/plain")
+
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, url, nil)
-	fmt.Println(err)
+	err = res.Body.Close()
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
-	request.Header.Set("Content-Type", "text/plain")
-
-	fmt.Println(err)
-	response, err := client.Do(request)
-	if err != nil {
-		panic(err)
-	}
-	defer response.Body.Close()
 }
 
 func main() {
-	pollInterval := 2 * time.Second
-	// reportInterval := 10 * time.Second
 	client := http.Client{}
 
 	for {
+		fmt.Println(pollCount)
 		metrics := collectMetrics()
+		time.Sleep(pollInterval)
 
-		fmt.Println(metrics["PollCount"].Value)
 		for _, metric := range metrics {
 			sendMetric(client, metric)
-			//time.Sleep(reportInterval)
+			time.Sleep(reportInterval)
 		}
-		time.Sleep(pollInterval)
-		
 	}
 }
