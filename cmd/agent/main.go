@@ -69,7 +69,6 @@ func collectMetrics() map[string]Metric {
 }
 
 func sendMetric(metric Metric) {
-	
 	resp, err := http.Post(fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value), "text/plain", nil)
 		if err != nil {
 			 panic(err)
