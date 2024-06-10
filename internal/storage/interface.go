@@ -1,6 +1,10 @@
 package storage
 
+import "github.com/Elvilius/go-musthave-metrics-tpl/internal/domain"
+
 type Storage interface {
-	Gauge(metricName string, value float64)
-	Inc(metricName string)
+	Save(metricType string, metricName string, value any)
+	Get(metricType, metricName string) (domain.Metric, bool)
+	GetAll() []domain.Metric
+	Print() []domain.Metric
 }
