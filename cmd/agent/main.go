@@ -79,12 +79,14 @@ func sendMetric(client http.Client, metric Metric) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatalln(err)
+		return
 	}
 
 	err = res.Body.Close()
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 }
 
 func main() {
