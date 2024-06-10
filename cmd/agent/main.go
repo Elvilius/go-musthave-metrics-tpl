@@ -91,7 +91,6 @@ func main() {
 	client := http.Client{}
 
 	for {
-		fmt.Println(pollCount)
 		metrics := collectMetrics()
 		time.Sleep(pollInterval)
 
