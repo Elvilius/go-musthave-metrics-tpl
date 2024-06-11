@@ -40,7 +40,7 @@ func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	err := h.s.Save(metricType, metricName, metricValue)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 	}
 
 	w.WriteHeader(http.StatusOK)

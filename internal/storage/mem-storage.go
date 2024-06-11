@@ -18,7 +18,11 @@ func (r *MemStorage) Save(metricType string, metricName string, value any) error
 	existMetric, ok := r.Get(metricType, metricName)
 
 	if metricType == domain.Gauge {
-		r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: value}
+		parsedValueFloat, err := strconv.ParseFloat(value.(string), 64)
+		if err != nil {
+			return err
+		}
+		r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: parsedValueFloat}
 		return nil
 	}
 	if metricType == domain.Counter {
