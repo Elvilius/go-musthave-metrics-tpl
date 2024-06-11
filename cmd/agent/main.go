@@ -75,8 +75,11 @@ func main() {
 	pollInterval := flag.Int("p", 30, "pollInterval")
 	reportInterval := flag.Int("r", 10, "reportInterval")
 	serverAddress := flag.String("a", "localhost:8080", "Address")
-
 	flag.Parse()
+
+	fmt.Println("Server Address:", *serverAddress)
+	fmt.Println("Report interval:", *reportInterval)
+	fmt.Println("Poll interval:", *pollInterval)
 
 	var metrics map[string]Metric
 
