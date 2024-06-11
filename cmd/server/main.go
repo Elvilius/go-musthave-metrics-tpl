@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
