@@ -72,7 +72,7 @@ func sendMetric(metric Metric, address string) {
 }
 
 func main() {
-	pollInterval := flag.Int("p", 30, "pollInterval")
+	pollInterval := flag.Int("p", 2, "pollInterval")
 	reportInterval := flag.Int("r", 10, "reportInterval")
 	serverAddress := flag.String("a", "localhost:8080", "Address")
 	flag.Parse()
