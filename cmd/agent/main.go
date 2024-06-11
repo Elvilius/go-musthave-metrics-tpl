@@ -1,12 +1,13 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
+
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 )
 
 type MetricType string
@@ -72,26 +73,19 @@ func sendMetric(metric Metric, address string) {
 }
 
 func main() {
-	pollInterval := flag.Int("p", 2, "pollInterval")
-	reportInterval := flag.Int("r", 10, "reportInterval")
-	serverAddress := flag.String("a", "localhost:8080", "Address")
-	flag.Parse()
-
-	fmt.Println("Server Address:", *serverAddress)
-	fmt.Println("Report interval:", *reportInterval)
-	fmt.Println("Poll interval:", *pollInterval)
+	cfg := config.GetAgentConfig()
 
 	var metrics map[string]Metric
 
 	go func() {
-		for range time.Tick(time.Duration(*pollInterval) * time.Second) {
+		for range time.Tick(time.Duration(cfg.PollInterval) * time.Second) {
 			metrics = collectMetrics()
 		}
 	}()
 
-	for range time.Tick(time.Duration(*reportInterval) * time.Second) {
+	for range time.Tick(time.Duration(cfg.ReportInterval) * time.Second) {
 		for _, m := range metrics {
-			sendMetric(m, *serverAddress)
+			sendMetric(m, cfg.ServerAddress)
 			metrics = nil
 		}
 	}

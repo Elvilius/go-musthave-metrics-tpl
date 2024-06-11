@@ -1,10 +1,9 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"net/http"
 
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
 	"github.com/go-chi/chi/v5"
@@ -20,12 +19,9 @@ func main() {
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handler.Update)
 	r.Get("/value/{metricType}/{metricName}", handler.Value)
 
-	serverAddress := flag.String("a", "localhost:8080", "address")
-	flag.Parse()
+	cfg := config.GetServerConfig()
 
-	fmt.Println("Server Address:", *serverAddress)
-
-	err := http.ListenAndServe(*serverAddress, r)
+	err := http.ListenAndServe(cfg.Address, r)
 	if err != nil {
 		panic(err)
 	}
