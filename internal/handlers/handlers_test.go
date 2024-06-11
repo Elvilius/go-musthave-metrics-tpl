@@ -106,8 +106,14 @@ func TestHandler_Value(t *testing.T) {
 		},
 	}
 	memStorage := storage.NewMemStorage()
-	memStorage.Save("gauge", "Alloc", "1.1")
-	memStorage.Save("counter", "PollCount", "100")
+	err := memStorage.Save("gauge", "Alloc", "1.1")
+	if err != nil {
+		return
+	}
+	err = memStorage.Save("counter", "PollCount", "100")
+	if err != nil {
+		return
+	}
 
 	h := NewHandler(memStorage)
 	router := chi.NewRouter()

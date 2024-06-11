@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"net/http"
 
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
@@ -18,7 +19,10 @@ func main() {
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handler.Update)
 	r.Get("/value/{metricType}/{metricName}", handler.Value)
 
-	err := http.ListenAndServe(`:8080`, r)
+	address := flag.String("a", "http://localhost:8080", "address")
+	flag.Parse()
+
+	err := http.ListenAndServe(*address, r)
 	if err != nil {
 		panic(err)
 	}

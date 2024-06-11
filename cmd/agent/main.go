@@ -1,17 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
-)
-
-const (
-	pollInterval   = 2
-	reportInterval = 10
-	serverAddress  = "http://localhost:8080"
 )
 
 type MetricType string
@@ -68,8 +63,8 @@ func collectMetrics() map[string]Metric {
 	return metrics
 }
 
-func sendMetric(metric Metric) {
-	resp, err := http.Post(fmt.Sprintf("http://localhost:8080/update/%s/%s/%f", metric.MType, metric.Name, metric.Value), "text/plain", nil)
+func sendMetric(metric Metric, address string) {
+	resp, err := http.Post(fmt.Sprintf("http://%s/update/%s/%s/%f", address, metric.MType, metric.Name, metric.Value), "text/plain", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -77,17 +72,23 @@ func sendMetric(metric Metric) {
 }
 
 func main() {
+	pollInterval := flag.Int("p", 30, "pollInterval")
+	reportInterval := flag.Int("r", 10, "reportInterval")
+	serverAddress := flag.String("a", "http://localhost:8080", "address")
+
+	flag.Parse()
+
 	var metrics map[string]Metric
 
 	go func() {
-		for range time.Tick(pollInterval * time.Second) {
+		for range time.Tick(time.Duration(*pollInterval) * time.Second) {
 			metrics = collectMetrics()
 		}
 	}()
 
-	for range time.Tick(reportInterval * time.Second) {
+	for range time.Tick(time.Duration(*reportInterval) * time.Second) {
 		for _, m := range metrics {
-			sendMetric(m)
+			sendMetric(m, *serverAddress)
 			metrics = nil
 		}
 	}
