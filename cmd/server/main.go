@@ -19,10 +19,10 @@ func main() {
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handler.Update)
 	r.Get("/value/{metricType}/{metricName}", handler.Value)
 
-	address := flag.String("a", "localhost:8080", "address")
-	flag.Parse()
+	// address := flag.String("a", "localhost:8080", "address")
+	// flag.Parse()
 
-	err := http.ListenAndServe(*address, r)
+	err := http.ListenAndServe(":8080", r)
 	if err != nil {
 		panic(err)
 	}
