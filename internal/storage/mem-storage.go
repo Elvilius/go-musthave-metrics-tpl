@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"strconv"
+
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/domain"
 )
 
@@ -12,20 +14,28 @@ func NewMemStorage() Storage {
 	return &MemStorage{metrics: make(map[string]domain.Metric)}
 }
 
-func (r *MemStorage) Save(metricType string, metricName string, value any) {
+func (r *MemStorage) Save(metricType string, metricName string, value any) error {
 	existMetric, ok := r.Get(metricType, metricName)
-	switch metricType {
-	case domain.Gauge:
+
+	if metricType == domain.Gauge {
 		r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: value}
-	case domain.Counter:
-		var newValue int
-		if ok {
-			newValue = existMetric.Value.(int) + value.(int)
-		} else {
-			newValue = value.(int)
-		}
-		r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: newValue}
+		return nil
 	}
+	if metricType == domain.Counter {
+		parsedValue, err := strconv.ParseInt(value.(string), 10, 64)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: parsedValue}
+			return nil
+		} else {
+			existMetric.Value = existMetric.Value.(int64) + parsedValue
+			r.metrics[metricName] = existMetric
+		}
+	}
+	return nil
 }
 
 func (r *MemStorage) Get(metricType string, metricName string) (domain.Metric, bool) {

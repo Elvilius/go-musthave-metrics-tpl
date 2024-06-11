@@ -38,7 +38,11 @@ func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	h.s.Save(metricType, metricName, metricValue)
+	err := h.s.Save(metricType, metricName, metricValue)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 
