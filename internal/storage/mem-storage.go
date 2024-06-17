@@ -4,13 +4,14 @@ import (
 	"strconv"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/domain"
+	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 )
 
 type MemStorage struct {
 	metrics map[string]domain.Metric
 }
 
-func NewMemStorage() Storage {
+func NewMemStorage() handler.Storager {
 	return &MemStorage{metrics: make(map[string]domain.Metric)}
 }
 
@@ -22,7 +23,7 @@ func (r *MemStorage) Save(metricType string, metricName string, value any) error
 		if err != nil {
 			return err
 		}
-		r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: parsedValueFloat}
+		r.metrics[metricName] = domain.Metric{Type: domain.MetricType(metricType), Name: metricName, Value: parsedValueFloat}
 		return nil
 	}
 	if metricType == domain.Counter {
@@ -32,7 +33,7 @@ func (r *MemStorage) Save(metricType string, metricName string, value any) error
 		}
 
 		if !ok {
-			r.metrics[metricName] = domain.Metric{Type: metricType, Name: metricName, Value: parsedValue}
+			r.metrics[metricName] = domain.Metric{Type: domain.MetricType(metricType), Name: metricName, Value: parsedValue}
 			return nil
 		} else {
 			existMetric.Value = existMetric.Value.(int64) + parsedValue
@@ -47,7 +48,7 @@ func (r *MemStorage) Get(metricType string, metricName string) (domain.Metric, b
 	if !ok {
 		return domain.Metric{}, false
 	}
-	if m.Type != metricType {
+	if m.Type != domain.MetricType(metricType) {
 		return domain.Metric{}, false
 	}
 

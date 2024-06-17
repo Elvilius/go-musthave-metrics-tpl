@@ -1,13 +1,17 @@
-package main
+package services
 
 import (
 	"testing"
 
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_collectMetrics(t *testing.T) {
-	metrics := collectMetrics()
+func Test_GetMetrics(t *testing.T) {
+	testCfg := config.AgentConfig{PollInterval: 10, ServerAddress: "localhost:8080", ReportInterval: 3}
+	agentServiceMetrics := NewAgentMetricService(testCfg)
+
+	metrics := agentServiceMetrics.GetMetric()
 	expectedGauges := []string{
 		"Alloc", "BuckHashSys", "Frees", "GCCPUFraction", "GCSys", "HeapAlloc", "HeapIdle", "HeapInuse", "HeapObjects", "HeapReleased",
 		"HeapSys", "LastGC", "Lookups", "MCacheInuse", "MCacheSys", "MSpanInuse", "MSpanSys", "Mallocs", "NextGC", "NumForcedGC", "NumGC", "OtherSys", "PauseTotalNs", "StackInuse",

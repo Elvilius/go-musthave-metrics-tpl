@@ -1,8 +1,10 @@
 package domain
 
+type MetricType string
+
 type Metric struct {
 	Name  string
-	Type  string
+	Type  MetricType
 	Value any
 }
 

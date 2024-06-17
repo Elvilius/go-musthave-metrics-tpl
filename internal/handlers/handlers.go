@@ -5,19 +5,18 @@ import (
 	"net/http"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/domain"
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
-	s storage.Storage
+	s Storager
 }
 
-func NewHandler(s storage.Storage) Handler {
-	return Handler{s: s}
+func NewHandler(s Storager) *Handler {
+	return &Handler{s: s}
 }
 
-func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
@@ -46,7 +45,7 @@ func (h Handler) Update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h Handler) Value(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 
@@ -72,7 +71,7 @@ func (h Handler) Value(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h Handler) All(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
