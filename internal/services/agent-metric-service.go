@@ -64,7 +64,7 @@ func (s *AgentMetricService) GetMetric() map[string]domain.Metric {
 	return s.metrics
 }
 
-func (s *AgentMetricService) SendMetricByHttp(m domain.Metric) {
+func (s *AgentMetricService) SendMetricByHTTP(m domain.Metric) {
 	resp, err := http.Post(fmt.Sprintf("http://%s/update/%s/%s/%f", s.cfg.ServerAddress, m.Type, m.Name, m.Value), "text/plain", nil)
 	if err != nil {
 		panic(err)
@@ -83,7 +83,7 @@ func (s *AgentMetricService) SendMetrics() {
 
 	for range time.Tick(time.Duration(s.cfg.ReportInterval) * time.Second) {
 		for _, m := range metrics {
-			s.SendMetricByHttp(m)
+			s.SendMetricByHTTP(m)
 			metrics = nil
 		}
 	}
