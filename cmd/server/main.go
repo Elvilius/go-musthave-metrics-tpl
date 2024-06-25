@@ -11,7 +11,7 @@ func main() {
 	memStorage := storage.NewMemStorage()
 	handler := handler.NewHandler(memStorage)
 	cfg := config.GetServerConfig()
-	server := server.NewServer(&cfg, handler)
+	server := server.New(&cfg, handler)
 
 	server.Run()
 }

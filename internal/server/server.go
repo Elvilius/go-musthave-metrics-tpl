@@ -10,22 +10,24 @@ import (
 
 type Server struct {
 	handler *handler.Handler
-	r       *chi.Mux
-	cfg *config.ServerConfig
+	router  *chi.Mux
+	cfg     *config.ServerConfig
 }
 
-func NewServer(cfg *config.ServerConfig, handler *handler.Handler) *Server {
-	r := chi.NewRouter()
-	return &Server{handler: handler, r: r, cfg: cfg}
+func New(cfg *config.ServerConfig, handler *handler.Handler) *Server {
+	router := chi.NewRouter()
+
+	server := &Server{handler: handler, router: router, cfg: cfg}
+
+	router.Get("/", server.handler.All)
+	router.Post("/update/{metricType}/{metricName}/{metricValue}", server.handler.Update)
+	router.Get("/value/{metricType}/{metricName}", server.handler.Value)
+
+	return server
 }
 
 func (s *Server) Run() {
-	s.r.Get("/", s.handler.All)
-	s.r.Post("/update/{metricType}/{metricName}/{metricValue}", s.handler.Update)
-	s.r.Get("/value/{metricType}/{metricName}", s.handler.Value)
-
-
-	err := http.ListenAndServe(s.cfg.Address, s.r)
+	err := http.ListenAndServe(s.cfg.Address, s.router)
 	if err != nil {
 		panic(err)
 	}

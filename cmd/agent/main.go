@@ -7,6 +7,6 @@ import (
 
 func main() {
 	cfg := config.GetAgentConfig()
-	agentServiceMetrics := services.NewAgentMetricService(cfg)
-	agentServiceMetrics.SendMetrics()
+	agent := services.NewAgentMetricService(cfg)
+	agent.Run()
 }

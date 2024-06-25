@@ -9,11 +9,17 @@ import (
 )
 
 type Handler struct {
-	s Storager
+	storage Storager
 }
 
-func NewHandler(s Storager) *Handler {
-	return &Handler{s: s}
+type Storager interface {
+	Save(metricType string, metricName string, value any) error
+	Get(metricType, metricName string) (domain.Metric, bool)
+	GetAll() []domain.Metric
+}
+
+func NewHandler(storage Storager) *Handler {
+	return &Handler{storage: storage}
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +43,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	err := h.s.Save(metricType, metricName, metricValue)
+	err := h.storage.Save(metricType, metricName, metricValue)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
@@ -51,7 +57,7 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	m, ok := h.s.Get(metricType, metricName)
+	m, ok := h.storage.Get(metricType, metricName)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -77,7 +83,7 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m := h.s.GetAll()
+	m := h.storage.GetAll()
 
 	bytes, err := json.Marshal(m)
 	if err != nil {

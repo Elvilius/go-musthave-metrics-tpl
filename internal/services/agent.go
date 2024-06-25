@@ -16,17 +16,17 @@ const (
 	Counter domain.MetricType = "counter"
 )
 
-type AgentMetricService struct {
+type Agent struct {
 	cfg       config.AgentConfig
 	metrics   map[string]domain.Metric
 	pollCount float64
 }
 
-func NewAgentMetricService(cfg config.AgentConfig) *AgentMetricService {
-	return &AgentMetricService{cfg: cfg, metrics: make(map[string]domain.Metric), pollCount: 0}
+func NewAgentMetricService(cfg config.AgentConfig) *Agent {
+	return &Agent{cfg: cfg, metrics: make(map[string]domain.Metric), pollCount: 0}
 }
 
-func (s *AgentMetricService) GetMetric() map[string]domain.Metric {
+func (s *Agent) GetMetric() map[string]domain.Metric {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
@@ -64,7 +64,7 @@ func (s *AgentMetricService) GetMetric() map[string]domain.Metric {
 	return s.metrics
 }
 
-func (s *AgentMetricService) SendMetricByHTTP(m domain.Metric) {
+func (s *Agent) SendMetricByHTTP(m domain.Metric) {
 	resp, err := http.Post(fmt.Sprintf("http://%s/update/%s/%s/%f", s.cfg.ServerAddress, m.Type, m.Name, m.Value), "text/plain", nil)
 	if err != nil {
 		panic(err)
@@ -72,7 +72,7 @@ func (s *AgentMetricService) SendMetricByHTTP(m domain.Metric) {
 	defer resp.Body.Close()
 }
 
-func (s *AgentMetricService) SendMetrics() {
+func (s *Agent) Run() {
 	var metrics map[string]domain.Metric
 
 	go func() {
