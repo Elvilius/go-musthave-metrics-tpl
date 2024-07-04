@@ -18,6 +18,10 @@ func NewMemStorage() handler.Storager {
 func (r *MemStorage) Save(metric models.Metrics) error {
 	mType, ID, value, delta := metric.MType, metric.ID, metric.Value, metric.Delta
 
+	var defaultDelta int64 = 0
+	if delta == nil {
+		delta = &defaultDelta
+	}
 	existMetric, ok := r.Get(mType, ID)
 
 	if mType == models.Gauge {
