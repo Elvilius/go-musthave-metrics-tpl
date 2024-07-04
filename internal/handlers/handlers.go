@@ -75,7 +75,6 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	metric := models.Metrics{}
-
 	err := json.NewDecoder(r.Body).Decode(&metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -103,6 +102,41 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 
 	var bytes []byte
 	var err error
+	if m.MType == models.Counter {
+		bytes, err = json.Marshal(m.Delta)
+	} else {
+		bytes, err = json.Marshal(m.Value)
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(bytes)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
+	metric := models.Metrics{}
+
+	err := json.NewDecoder(r.Body).Decode(&metric)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	w.Header().Set("Content-Type", "Content-Type: application/json")
+
+	m, ok := h.storage.Get(metric.MType, metric.ID)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	var bytes []byte
 	if m.MType == models.Counter {
 		bytes, err = json.Marshal(m.Delta)
 	} else {
