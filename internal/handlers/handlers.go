@@ -79,7 +79,7 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	w.Header().Set("Content-Type", "Content-Type: application/json")
+	w.Header().Set("Content-Type", "application/json")
 
 	err = h.storage.Save(metric)
 	if err != nil {
@@ -128,7 +128,7 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	w.Header().Set("Content-Type", "Content-Type: application/json")
+	w.Header().Set("Content-Type", "application/json")
 
 	m, ok := h.storage.Get(metric.MType, metric.ID)
 	if !ok {
