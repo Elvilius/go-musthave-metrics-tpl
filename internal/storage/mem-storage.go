@@ -3,8 +3,8 @@ package storage
 import (
 	"strconv"
 
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
 
 type MemStorage struct {

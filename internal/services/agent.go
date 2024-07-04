@@ -117,7 +117,13 @@ func (s *Agent) GetMetric() map[string]models.Metrics {
 }
 
 func (s *Agent) SendMetricByHTTP(m models.Metrics) {
-	resp, err := http.Post(fmt.Sprintf("http://%s/update/%s/%s/%f", s.cfg.ServerAddress, m.MType, m.ID, m.Value), "text/plain", nil)
+	var url string
+	if m.MType == models.Counter {
+		url = fmt.Sprintf("http://%s/update/%s/%s/%d", s.cfg.ServerAddress, m.MType, m.ID, *m.Delta)
+	} else {
+		url = fmt.Sprintf("http://%s/update/%s/%s/%f", s.cfg.ServerAddress, m.MType, m.ID, *m.Value)
+	}
+	resp, err := http.Post(url, "text/plain", nil)
 	if err != nil {
 		panic(err)
 	}
