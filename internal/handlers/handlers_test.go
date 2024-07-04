@@ -6,57 +6,58 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/domain"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
 type TestStorage struct {
-	metrics map[string]domain.Metric
+	metrics map[string]models.Metrics
 }
 
 func (r *TestStorage) Save(metricType string, metricName string, value any) error {
 	existMetric, ok := r.Get(metricType, metricName)
 
-	if metricType == domain.Gauge {
+	if metricType == models.Gauge {
 		parsedValueFloat, err := strconv.ParseFloat(value.(string), 64)
 		if err != nil {
 			return err
 		}
-		r.metrics[metricName] = domain.Metric{Type: domain.MetricType(metricType), Name: metricName, Value: parsedValueFloat}
+		r.metrics[metricName] = models.Metrics{MType: metricType, ID: metricName, Value: &parsedValueFloat}
 		return nil
 	}
-	if metricType == domain.Counter {
+	if metricType == models.Counter {
 		parsedValue, err := strconv.ParseInt(value.(string), 10, 64)
 		if err != nil {
 			return err
 		}
 
 		if !ok {
-			r.metrics[metricName] = domain.Metric{Type: domain.MetricType(metricType), Name: metricName, Value: parsedValue}
+			r.metrics[metricName] = models.Metrics{MType: metricType, ID: metricName, Delta: &parsedValue}
 			return nil
 		} else {
-			existMetric.Value = existMetric.Value.(int64) + parsedValue
+			delta := *existMetric.Delta + parsedValue
+			existMetric.Delta = &delta
 			r.metrics[metricName] = existMetric
 		}
 	}
 	return nil
 }
 
-func (r *TestStorage) Get(metricType string, metricName string) (domain.Metric, bool) {
+func (r *TestStorage) Get(metricType string, metricName string) (models.Metrics, bool) {
 	m, ok := r.metrics[metricName]
 	if !ok {
-		return domain.Metric{}, false
+		return models.Metrics{}, false
 	}
-	if m.Type != domain.MetricType(metricType) {
-		return domain.Metric{}, false
+	if m.MType != metricType {
+		return models.Metrics{}, false
 	}
 
 	return m, true
 }
 
-func (r *TestStorage) GetAll() []domain.Metric {
-	all := make([]domain.Metric, 0, len(r.metrics))
+func (r *TestStorage) GetAll() []models.Metrics {
+	all := make([]models.Metrics, 0, len(r.metrics))
 	for _, m := range r.metrics {
 		all = append(all, m)
 	}
@@ -103,7 +104,7 @@ func TestHandler_Update(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		memStorage := &TestStorage{metrics: make(map[string]domain.Metric)}
+		memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
 		h := NewHandler(memStorage)
 		router := chi.NewRouter()
 		router.Post("/update/{metricType}/{metricName}/{metricValue}", h.Update)
@@ -158,7 +159,7 @@ func TestHandler_Value(t *testing.T) {
 			},
 		},
 	}
-	memStorage := &TestStorage{metrics: make(map[string]domain.Metric)}
+	memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
 
 	err := memStorage.Save("gauge", "Alloc", "1.1")
 	if err != nil {

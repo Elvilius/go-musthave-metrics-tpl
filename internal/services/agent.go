@@ -8,64 +8,116 @@ import (
 	"time"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/domain"
-)
-
-const (
-	Gauge   domain.MetricType = "gauge"
-	Counter domain.MetricType = "counter"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
 
 type Agent struct {
 	cfg       config.AgentConfig
-	metrics   map[string]domain.Metric
-	pollCount float64
+	metrics   map[string]models.Metrics
+	pollCount int64
 }
 
 func NewAgentMetricService(cfg config.AgentConfig) *Agent {
-	return &Agent{cfg: cfg, metrics: make(map[string]domain.Metric), pollCount: 0}
+	return &Agent{cfg: cfg, metrics: make(map[string]models.Metrics), pollCount: 0}
 }
 
-func (s *Agent) GetMetric() map[string]domain.Metric {
+func (s *Agent) GetMetric() map[string]models.Metrics {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	s.metrics["Alloc"] = domain.Metric{Name: "Alloc", Type: Gauge, Value: (float64(memStats.Alloc))}
-	s.metrics["BuckHashSys"] = domain.Metric{Name: "BuckHashSys", Type: Gauge, Value: (float64(memStats.BuckHashSys))}
-	s.metrics["Frees"] = domain.Metric{Name: "Frees", Type: Gauge, Value: (float64(memStats.Frees))}
-	s.metrics["GCCPUFraction"] = domain.Metric{Name: "GCCPUFraction", Type: Gauge, Value: (memStats.GCCPUFraction)}
-	s.metrics["GCSys"] = domain.Metric{Name: "GCSys", Type: Gauge, Value: (float64(memStats.GCSys))}
-	s.metrics["HeapAlloc"] = domain.Metric{Name: "HeapAlloc", Type: Gauge, Value: (float64(memStats.HeapAlloc))}
-	s.metrics["HeapIdle"] = domain.Metric{Name: "HeapIdle", Type: Gauge, Value: (float64(memStats.HeapIdle))}
-	s.metrics["HeapInuse"] = domain.Metric{Name: "HeapInuse", Type: Gauge, Value: (float64(memStats.HeapInuse))}
-	s.metrics["HeapObjects"] = domain.Metric{Name: "HeapObjects", Type: Gauge, Value: (float64(memStats.HeapObjects))}
-	s.metrics["HeapReleased"] = domain.Metric{Name: "HeapReleased", Type: Gauge, Value: (float64(memStats.HeapReleased))}
-	s.metrics["HeapSys"] = domain.Metric{Name: "HeapSys", Type: Gauge, Value: (float64(memStats.HeapSys))}
-	s.metrics["LastGC"] = domain.Metric{Name: "LastGC", Type: Gauge, Value: (float64(memStats.LastGC))}
-	s.metrics["Lookups"] = domain.Metric{Name: "Lookups", Type: Gauge, Value: (float64(memStats.Lookups))}
-	s.metrics["MCacheInuse"] = domain.Metric{Name: "MCacheInuse", Type: Gauge, Value: (float64(memStats.MCacheInuse))}
-	s.metrics["MCacheSys"] = domain.Metric{Name: "MCacheSys", Type: Gauge, Value: (float64(memStats.MCacheSys))}
-	s.metrics["MSpanInuse"] = domain.Metric{Name: "MSpanInuse", Type: Gauge, Value: (float64(memStats.MSpanInuse))}
-	s.metrics["MSpanSys"] = domain.Metric{Name: "MSpanSys", Type: Gauge, Value: (float64(memStats.MSpanSys))}
-	s.metrics["Mallocs"] = domain.Metric{Name: "Mallocs", Type: Gauge, Value: (float64(memStats.Mallocs))}
-	s.metrics["NextGC"] = domain.Metric{Name: "NextGC", Type: Gauge, Value: (float64(memStats.NextGC))}
-	s.metrics["NumForcedGC"] = domain.Metric{Name: "NumForcedGC", Type: Gauge, Value: (float64(memStats.NumForcedGC))}
-	s.metrics["NumGC"] = domain.Metric{Name: "NumGC", Type: Gauge, Value: (float64(memStats.NumGC))}
-	s.metrics["OtherSys"] = domain.Metric{Name: "OtherSys", Type: Gauge, Value: (float64(memStats.OtherSys))}
-	s.metrics["PauseTotalNs"] = domain.Metric{Name: "PauseTotalNs", Type: Gauge, Value: (float64(memStats.PauseTotalNs))}
-	s.metrics["StackInuse"] = domain.Metric{Name: "StackInuse", Type: Gauge, Value: (float64(memStats.StackInuse))}
-	s.metrics["StackSys"] = domain.Metric{Name: "StackSys", Type: Gauge, Value: (float64(memStats.StackSys))}
-	s.metrics["Sys"] = domain.Metric{Name: "Sys", Type: Gauge, Value: (float64(memStats.Sys))}
-	s.metrics["TotalAlloc"] = domain.Metric{Name: "TotalAlloc", Type: Gauge, Value: (float64(memStats.TotalAlloc))}
-	s.metrics["RandomValue"] = domain.Metric{Name: "RandomValue", Type: Gauge, Value: (rand.Float64())}
-	s.metrics["PollCount"] = domain.Metric{Name: "PollCount", Type: Counter, Value: s.pollCount}
+	alloc := float64(memStats.Alloc)
+	s.metrics["Alloc"] = models.Metrics{ID: "Alloc", MType: models.Gauge, Value: &alloc}
+
+	buckHashSys := float64(memStats.Frees)
+	s.metrics["BuckHashSys"] = models.Metrics{ID: "BuckHashSys", MType: models.Gauge, Value: &buckHashSys}
+
+	frees := float64(memStats.Frees)
+	s.metrics["Frees"] = models.Metrics{ID: "Frees", MType: models.Gauge, Value: &frees}
+
+	gCCPUFraction := memStats.GCCPUFraction
+	s.metrics["GCCPUFraction"] = models.Metrics{ID: "GCCPUFraction", MType: models.Gauge, Value: &gCCPUFraction}
+
+	gCSys := float64(memStats.GCSys)
+	s.metrics["GCSys"] = models.Metrics{ID: "GCSys", MType: models.Gauge, Value: &gCSys}
+
+	heapAlloc := float64(memStats.HeapAlloc)
+	s.metrics["HeapAlloc"] = models.Metrics{ID: "HeapAlloc", MType: models.Gauge, Value: &heapAlloc}
+
+	heapIdle := float64(memStats.HeapIdle)
+	s.metrics["HeapIdle"] = models.Metrics{ID: "HeapIdle", MType: models.Gauge, Value: &heapIdle}
+
+	heapInuse := float64(memStats.HeapInuse)
+	s.metrics["HeapInuse"] = models.Metrics{ID: "HeapInuse", MType: models.Gauge, Value: &heapInuse}
+
+	heapObjects := float64(memStats.HeapObjects)
+	s.metrics["HeapObjects"] = models.Metrics{ID: "HeapObjects", MType: models.Gauge, Value: &heapObjects}
+
+	heapReleased := float64(memStats.HeapReleased)
+	s.metrics["HeapReleased"] = models.Metrics{ID: "HeapReleased", MType: models.Gauge, Value: &heapReleased}
+
+	heapSys := float64(memStats.HeapSys)
+	s.metrics["HeapSys"] = models.Metrics{ID: "HeapSys", MType: models.Gauge, Value: &heapSys}
+
+	lastGC := float64(memStats.LastGC)
+	s.metrics["LastGC"] = models.Metrics{ID: "LastGC", MType: models.Gauge, Value: &lastGC}
+
+	lookups := float64(memStats.Lookups)
+	s.metrics["Lookups"] = models.Metrics{ID: "Lookups", MType: models.Gauge, Value: &lookups}
+
+	mCacheInuse := float64(memStats.MCacheInuse)
+	s.metrics["MCacheInuse"] = models.Metrics{ID: "MCacheInuse", MType: models.Gauge, Value: &mCacheInuse}
+
+	mCacheSys := float64(memStats.MCacheSys)
+	s.metrics["MCacheSys"] = models.Metrics{ID: "MCacheSys", MType: models.Gauge, Value: &mCacheSys}
+
+	mSpanInuse := float64(memStats.MSpanInuse)
+	s.metrics["MSpanInuse"] = models.Metrics{ID: "MSpanInuse", MType: models.Gauge, Value: &mSpanInuse}
+
+	mSpanSys := float64(memStats.MSpanSys)
+	s.metrics["MSpanSys"] = models.Metrics{ID: "MSpanSys", MType: models.Gauge, Value: &mSpanSys}
+
+	mallocs := float64(memStats.Mallocs)
+	s.metrics["Mallocs"] = models.Metrics{ID: "Mallocs", MType: models.Gauge, Value: &mallocs}
+
+	nextGC := float64(memStats.NextGC)
+	s.metrics["NextGC"] = models.Metrics{ID: "NextGC", MType: models.Gauge, Value: &nextGC}
+
+	numForcedGC := float64(memStats.NumForcedGC)
+	s.metrics["NumForcedGC"] = models.Metrics{ID: "NumForcedGC", MType: models.Gauge, Value: &numForcedGC}
+
+	numGC := float64(memStats.NumGC)
+	s.metrics["NumGC"] = models.Metrics{ID: "NumGC", MType: models.Gauge, Value: &numGC}
+
+	otherSys := float64(memStats.OtherSys)
+	s.metrics["OtherSys"] = models.Metrics{ID: "OtherSys", MType: models.Gauge, Value: &otherSys}
+
+	pauseTotalNs := float64(memStats.PauseTotalNs)
+	s.metrics["PauseTotalNs"] = models.Metrics{ID: "PauseTotalNs", MType: models.Gauge, Value: &pauseTotalNs}
+
+	stackInuse := float64(memStats.StackInuse)
+	s.metrics["StackInuse"] = models.Metrics{ID: "StackInuse", MType: models.Gauge, Value: &stackInuse}
+
+	stackSys := float64(memStats.StackSys)
+	s.metrics["StackSys"] = models.Metrics{ID: "StackSys", MType: models.Gauge, Value: &stackSys}
+
+	sys := float64(memStats.Sys)
+	s.metrics["Sys"] = models.Metrics{ID: "Sys", MType: models.Gauge, Value: &sys}
+
+	totalAlloc := float64(memStats.TotalAlloc)
+	s.metrics["TotalAlloc"] = models.Metrics{ID: "TotalAlloc", MType: models.Gauge, Value: &totalAlloc}
+
+	randomValue := rand.Float64()
+	s.metrics["RandomValue"] = models.Metrics{ID: "RandomValue", MType: models.Gauge, Value: &randomValue}
+
+	pollCount := s.pollCount
+	s.metrics["PollCount"] = models.Metrics{ID: "PollCount", MType: models.Counter, Delta: &pollCount}
 
 	s.pollCount++
 	return s.metrics
 }
 
-func (s *Agent) SendMetricByHTTP(m domain.Metric) {
-	resp, err := http.Post(fmt.Sprintf("http://%s/update/%s/%s/%f", s.cfg.ServerAddress, m.Type, m.Name, m.Value), "text/plain", nil)
+func (s *Agent) SendMetricByHTTP(m models.Metrics) {
+	resp, err := http.Post(fmt.Sprintf("http://%s/update/%s/%s/%f", s.cfg.ServerAddress, m.MType, m.ID, m.Value), "text/plain", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +125,7 @@ func (s *Agent) SendMetricByHTTP(m domain.Metric) {
 }
 
 func (s *Agent) Run() {
-	var metrics map[string]domain.Metric
+	var metrics map[string]models.Metrics
 
 	go func() {
 		for range time.Tick(time.Duration(s.cfg.PollInterval) * time.Second) {

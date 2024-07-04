@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/domain"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -14,8 +14,8 @@ type Handler struct {
 
 type Storager interface {
 	Save(metricType string, metricName string, value any) error
-	Get(metricType, metricName string) (domain.Metric, bool)
-	GetAll() []domain.Metric
+	Get(metricType, metricName string) (models.Metrics, bool)
+	GetAll() []models.Metrics
 }
 
 func NewHandler(storage Storager) *Handler {
@@ -36,7 +36,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if metricType != domain.Counter && metricType != domain.Gauge {
+	if metricType != models.Counter && metricType != models.Gauge {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
