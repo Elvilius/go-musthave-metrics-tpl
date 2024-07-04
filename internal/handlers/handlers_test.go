@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
@@ -15,41 +14,34 @@ type TestStorage struct {
 	metrics map[string]models.Metrics
 }
 
-func (r *TestStorage) Save(metricType string, metricName string, value any) error {
-	existMetric, ok := r.Get(metricType, metricName)
+func (r *TestStorage) Save(metric models.Metrics) error {
+	mType, ID, value, delta := metric.MType, metric.ID, metric.Value, metric.Delta
 
-	if metricType == models.Gauge {
-		parsedValueFloat, err := strconv.ParseFloat(value.(string), 64)
-		if err != nil {
-			return err
-		}
-		r.metrics[metricName] = models.Metrics{MType: metricType, ID: metricName, Value: &parsedValueFloat}
+	existMetric, ok := r.Get(mType, ID)
+
+	if mType == models.Gauge {
+		r.metrics[ID] = models.Metrics{ID: ID, MType: mType, Value: value}
 		return nil
 	}
-	if metricType == models.Counter {
-		parsedValue, err := strconv.ParseInt(value.(string), 10, 64)
-		if err != nil {
-			return err
-		}
-
+	if mType == models.Counter {
 		if !ok {
-			r.metrics[metricName] = models.Metrics{MType: metricType, ID: metricName, Delta: &parsedValue}
+			r.metrics[ID] = models.Metrics{ID: ID, MType: mType, Delta: delta}
 			return nil
 		} else {
-			delta := *existMetric.Delta + parsedValue
+			delta := *existMetric.Delta + *delta
 			existMetric.Delta = &delta
-			r.metrics[metricName] = existMetric
+			r.metrics[ID] = existMetric
 		}
 	}
 	return nil
 }
 
-func (r *TestStorage) Get(metricType string, metricName string) (models.Metrics, bool) {
-	m, ok := r.metrics[metricName]
+func (r *TestStorage) Get(mType string, ID string) (models.Metrics, bool) {
+	m, ok := r.metrics[ID]
 	if !ok {
 		return models.Metrics{}, false
 	}
-	if m.MType != metricType {
+	if m.MType != mType {
 		return models.Metrics{}, false
 	}
 
@@ -107,7 +99,7 @@ func TestHandler_Update(t *testing.T) {
 		memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
 		h := NewHandler(memStorage)
 		router := chi.NewRouter()
-		router.Post("/update/{metricType}/{metricName}/{metricValue}", h.Update)
+		router.Post("/update/{type}/{id}/{value}", h.Update)
 
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
@@ -161,18 +153,32 @@ func TestHandler_Value(t *testing.T) {
 	}
 	memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
 
-	err := memStorage.Save("gauge", "Alloc", "1.1")
+	allocValue := 1.1
+	allocMetric := models.Metrics{
+		ID:    "Alloc",
+		MType: "gauge",
+		Value: &allocValue,
+	}
+	err := memStorage.Save(allocMetric)
 	if err != nil {
 		return
 	}
-	err = memStorage.Save("counter", "PollCount", "100")
+
+	var pollCountValue int64 = 100
+	pollCountMetric := models.Metrics{
+		ID:    "PollCount",
+		MType: "counter",
+		Delta: &pollCountValue,
+	}
+
+	err = memStorage.Save(pollCountMetric)
 	if err != nil {
 		return
 	}
 
 	h := NewHandler(memStorage)
 	router := chi.NewRouter()
-	router.Get("/value/{metricType}/{metricName}", h.Value)
+	router.Get("/value/{type}/{id}", h.Value)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)

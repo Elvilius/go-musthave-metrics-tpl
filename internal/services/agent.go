@@ -1,6 +1,8 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -116,18 +118,17 @@ func (s *Agent) GetMetric() map[string]models.Metrics {
 	return s.metrics
 }
 
-func (s *Agent) SendMetricByHTTP(m models.Metrics) {
-	var url string
-	if m.MType == models.Counter {
-		url = fmt.Sprintf("http://%s/update/%s/%s/%d", s.cfg.ServerAddress, m.MType, m.ID, *m.Delta)
-	} else {
-		url = fmt.Sprintf("http://%s/update/%s/%s/%f", s.cfg.ServerAddress, m.MType, m.ID, *m.Value)
-	}
-	resp, err := http.Post(url, "text/plain", nil)
+func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
+	uri := fmt.Sprintf("http://%s/update/", s.cfg.ServerAddress)
+	body, err := json.Marshal(metric)
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+	res, err := http.Post(uri, "Content-Type: application/json", bytes.NewBuffer(body))
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
 }
 
 func (s *Agent) Run() {

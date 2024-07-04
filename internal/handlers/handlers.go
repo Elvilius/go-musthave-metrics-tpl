@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"github.com/go-chi/chi/v5"
@@ -13,7 +14,7 @@ type Handler struct {
 }
 
 type Storager interface {
-	Save(metricType string, metricName string, value any) error
+	Save(metric models.Metrics) error
 	Get(metricType, metricName string) (models.Metrics, bool)
 	GetAll() []models.Metrics
 }
@@ -23,27 +24,48 @@ func NewHandler(storage Storager) *Handler {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	metricType := chi.URLParam(r, "metricType")
-	metricName := chi.URLParam(r, "metricName")
-	metricValue := chi.URLParam(r, "metricValue")
+	mType := chi.URLParam(r, "type")
+	id := chi.URLParam(r, "id")
+	value := chi.URLParam(r, "value")
 
-	if metricName == "" {
+	if id == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	if metricType == "" || metricValue == "" {
+	if mType == "" || value == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if metricType != models.Counter && metricType != models.Gauge {
+	if mType != models.Counter && mType != models.Gauge {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	err := h.storage.Save(metricType, metricName, metricValue)
+	metric := models.Metrics{
+		ID:    id,
+		MType: mType,
+	}
+
+	if mType == models.Counter {
+		parseInt, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		metric.Delta = &parseInt
+	} else {
+		parseFloat, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		metric.Value = &parseFloat
+	}
+
+	err := h.storage.Save(metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
@@ -51,13 +73,29 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (h *Handler) UpdateJson(w http.ResponseWriter, r *http.Request) {
+	metric := models.Metrics{}
+
+	err := json.NewDecoder(r.Body).Decode(&metric)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	w.Header().Set("Content-Type", "Content-Type: application/json")
+
+	err = h.storage.Save(metric)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
-	metricType := chi.URLParam(r, "metricType")
-	metricName := chi.URLParam(r, "metricName")
+	mType := chi.URLParam(r, "type")
+	id := chi.URLParam(r, "id")
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	m, ok := h.storage.Get(metricType, metricName)
+	m, ok := h.storage.Get(mType, id)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return

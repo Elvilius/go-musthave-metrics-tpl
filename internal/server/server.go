@@ -23,8 +23,9 @@ func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.Sugared
 	server := &Server{handler: handler, router: router, cfg: cfg, logger: logger}
 
 	router.Get("/", server.handler.All)
-	router.Post("/update/{metricType}/{metricName}/{metricValue}", server.handler.Update)
-	router.Get("/value/{metricType}/{metricName}", server.handler.Value)
+	router.Post("/update/{type}/{id}/{value}", server.handler.Update)
+	router.Post("/update/", server.handler.UpdateJson)
+	router.Get("/value/{type}/{id}", server.handler.Value)
 
 	return server
 }
