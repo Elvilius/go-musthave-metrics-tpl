@@ -15,7 +15,7 @@ type Handler struct {
 
 type Storager interface {
 	Save(metric models.Metrics) error
-	Get(metricType, metricName string) (models.Metrics, bool)
+	Get(mType, id string) (models.Metrics, bool)
 	GetAll() []models.Metrics
 }
 
@@ -73,7 +73,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) UpdateJson(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	metric := models.Metrics{}
 
 	err := json.NewDecoder(r.Body).Decode(&metric)
@@ -101,7 +101,14 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bytes, err := json.Marshal(m.Value)
+	var bytes []byte
+	var err error
+	if m.MType == models.Counter {
+		bytes, err = json.Marshal(m.Delta)
+	} else {
+		bytes, err = json.Marshal(m.Value)
+	}
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
