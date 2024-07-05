@@ -48,7 +48,7 @@ func Logging(h http.Handler, logger *zap.SugaredLogger) http.Handler {
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
-	r.responseData.size += size 
+	r.responseData.size += size
 	return size, err
 }
 

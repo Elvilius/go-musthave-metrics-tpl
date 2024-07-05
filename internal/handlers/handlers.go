@@ -94,9 +94,9 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		responseMetric = requestMetric
 	} else {
-		responseMetric  = metric
+		responseMetric = metric
 	}
-	
+
 	res, err := json.Marshal(responseMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -111,7 +111,7 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	}
+}
 
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
@@ -161,13 +161,7 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var bytes []byte
-	if m.MType == models.Counter {
-		bytes, err = json.Marshal(m.Delta)
-	} else {
-		bytes, err = json.Marshal(m.Value)
-	}
-
+	bytes, err := json.Marshal(m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
