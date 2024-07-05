@@ -132,7 +132,7 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 }
 
 func (s *Agent) Run() {
-	time.Sleep(10 * time.Second)
+	time.Sleep(2 * time.Second)
 	var metrics map[string]models.Metrics
 
 	go func() {
