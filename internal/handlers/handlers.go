@@ -74,19 +74,39 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
-	metric := models.Metrics{}
-	err := json.NewDecoder(r.Body).Decode(&metric)
+	requestMetric := models.Metrics{}
+	err := json.NewDecoder(r.Body).Decode(&requestMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	w.Header().Set("Content-Type", "application/json")
 
-	err = h.storage.Save(metric)
+	var responseMetric models.Metrics
+
+	err = h.storage.Save(requestMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
+	metric, ok := h.storage.Get(requestMetric.MType, requestMetric.ID)
+	if !ok {
+		responseMetric = requestMetric
+	} else {
+		responseMetric  = metric
+	}
+	
+	res, err := json.Marshal(responseMetric)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	_, err = w.Write(res)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-}
+	}
 
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
