@@ -37,11 +37,22 @@ func Logging(h http.Handler, logger *zap.SugaredLogger) http.Handler {
 		logger.Infoln(
 			"uri", r.RequestURI,
 			"method", r.Method,
-			"status", responseData.status,
+			"status", lw.responseData.status,
 			"duration", duration,
-			"size", responseData.size,
+			"size", lw.responseData.size,
 		)
 	}
 
 	return http.HandlerFunc(fn)
+}
+
+func (r *loggingResponseWriter) Write(b []byte) (int, error) {
+	size, err := r.ResponseWriter.Write(b)
+	r.responseData.size += size 
+	return size, err
+}
+
+func (r *loggingResponseWriter) WriteHeader(statusCode int) {
+	r.responseData.status = statusCode
+	r.ResponseWriter.WriteHeader(statusCode)
 }
