@@ -68,6 +68,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	err := h.storage.Save(metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -78,6 +79,7 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&requestMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 
@@ -86,6 +88,7 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	err = h.storage.Save(requestMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	metric, ok := h.storage.Get(requestMetric.MType, requestMetric.ID)
 	if !ok {
@@ -97,11 +100,13 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	res, err := json.Marshal(responseMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	_, err = w.Write(res)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
