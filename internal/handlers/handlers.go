@@ -149,8 +149,6 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	metric := models.Metrics{}
 
-	w.WriteHeader(http.StatusInternalServerError)
-	return 
 	err := json.NewDecoder(r.Body).Decode(&metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
