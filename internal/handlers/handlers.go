@@ -155,11 +155,7 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 
-	m, ok := h.storage.Get(metric.MType, metric.ID)
-	if !ok {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+	m, _ := h.storage.Get(metric.MType, metric.ID)
 
 	bytes, err := json.Marshal(m)
 	if err != nil {
