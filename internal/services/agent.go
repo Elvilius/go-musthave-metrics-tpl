@@ -122,11 +122,13 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 	uri := fmt.Sprintf("http://%s/update/", s.cfg.ServerAddress)
 	body, err := json.Marshal(metric)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	res, err := http.Post(uri, "Content-Type: application/json", bytes.NewBuffer(body))
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	defer res.Body.Close()
 }
