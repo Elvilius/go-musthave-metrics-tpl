@@ -74,44 +74,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
-	requestMetric := models.Metrics{}
-	err := json.NewDecoder(r.Body).Decode(&requestMetric)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
 
-	var responseMetric models.Metrics
-
-	err = h.storage.Save(requestMetric)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	metric, ok := h.storage.Get(requestMetric.MType, requestMetric.ID)
-	if !ok {
-		responseMetric = requestMetric
-	} else {
-		responseMetric = metric
-	}
-
-	res, err := json.Marshal(responseMetric)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	_, err = w.Write(res)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-}
 
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
@@ -144,6 +107,44 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
+	requestMetric := models.Metrics{}
+	err := json.NewDecoder(r.Body).Decode(&requestMetric)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	var responseMetric models.Metrics
+
+	err = h.storage.Save(requestMetric)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	metric, ok := h.storage.Get(requestMetric.MType, requestMetric.ID)
+	if !ok {
+		responseMetric = requestMetric
+	} else {
+		responseMetric = metric
+	}
+
+	res, err := json.Marshal(responseMetric)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+
+	_, err = w.Write(res)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 }
 
 func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
