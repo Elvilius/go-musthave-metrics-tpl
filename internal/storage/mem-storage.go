@@ -1,8 +1,6 @@
 package storage
 
 import (
-	"fmt"
-
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
@@ -56,7 +54,6 @@ func (r *MemStorage) Get(mType string, ID string) (models.Metrics, bool) {
 func (r *MemStorage) GetAll() []models.Metrics {
 	all := make([]models.Metrics, 0, len(r.metrics))
 	for _, m := range r.metrics {
-		fmt.Println(m)
 		all = append(all, m)
 	}
 	return all

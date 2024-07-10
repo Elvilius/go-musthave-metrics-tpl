@@ -22,7 +22,7 @@ func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.Sugared
 
 	server := &Server{handler: handler, router: router, cfg: cfg, logger: logger}
 
-	//router.Use(middleware.Logging(*logger))
+	// router.Use(middleware.Logging(*logger))
 	router.Use(middleware.Gzip)
 
 	router.Get("/", server.handler.All)

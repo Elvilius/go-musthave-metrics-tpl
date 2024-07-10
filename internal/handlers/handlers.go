@@ -74,8 +74,6 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-
-
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
 	id := chi.URLParam(r, "id")
@@ -144,7 +142,6 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 }
 
 func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +186,7 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {

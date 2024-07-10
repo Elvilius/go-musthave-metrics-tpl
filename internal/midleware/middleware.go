@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -66,7 +65,6 @@ func Gzip(h http.Handler) http.Handler {
 
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
-		fmt.Println(supportsGzip)
 
 		if supportsGzip {
 			cw := gzip.NewCompressWriter(w)
