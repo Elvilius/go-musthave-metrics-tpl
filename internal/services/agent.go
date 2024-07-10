@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -11,16 +12,18 @@ import (
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
+	"go.uber.org/zap"
 )
 
 type Agent struct {
 	cfg       config.AgentConfig
 	metrics   map[string]models.Metrics
 	pollCount int64
+	logger    *zap.SugaredLogger
 }
 
-func NewAgentMetricService(cfg config.AgentConfig) *Agent {
-	return &Agent{cfg: cfg, metrics: make(map[string]models.Metrics), pollCount: 0}
+func NewAgentMetricService(cfg config.AgentConfig, logger *zap.SugaredLogger) *Agent {
+	return &Agent{cfg: cfg, metrics: make(map[string]models.Metrics), pollCount: 0, logger: logger}
 }
 
 func (s *Agent) GetMetric() map[string]models.Metrics {
@@ -119,15 +122,41 @@ func (s *Agent) GetMetric() map[string]models.Metrics {
 }
 
 func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
-	uri := fmt.Sprintf("http://%s/update/", s.cfg.ServerAddress)
+	url := fmt.Sprintf("http://%s/update/", s.cfg.ServerAddress)
 	body, err := json.Marshal(metric)
 	if err != nil {
-		fmt.Println(err)
+		s.logger.Errorln(err)
 		return
 	}
-	res, err := http.Post(uri, "Content-Type: application/json", bytes.NewBuffer(body))
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	defer gz.Close()
+
+	_, err = gz.Write(body)
 	if err != nil {
-		fmt.Println(err)
+		s.logger.Errorln(err)
+		return
+	}
+
+	err = gz.Flush()
+	if err != nil {
+		s.logger.Errorln(err)
+		return
+	}
+
+	client := http.Client{}
+	req, err := http.NewRequest("POST", url, &buf)
+	if err != nil {
+		s.logger.Errorln(err)
+		return
+	}
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		s.logger.Errorln(err)
 		return
 	}
 	defer res.Body.Close()
