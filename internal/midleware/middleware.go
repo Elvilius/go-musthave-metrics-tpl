@@ -59,30 +59,30 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
-func Gzip(h http.Handler) http.Handler {
+func Gzip(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ow := w
+		rw := w
 
-		acceptEncoding := r.Header.Get("Accept-Encoding")
-		supportsGzip := strings.Contains(acceptEncoding, "gzip")
-		if supportsGzip {
+		encodings := r.Header.Get("Accept-Encoding")
+		// Если принимаем gzip то сжимаем
+		if strings.Contains(encodings, "gzip") {
 			cw := gzip.NewCompressWriter(w)
-			ow = cw
+			rw = cw
+
 			defer cw.Close()
 		}
 
-		contentEncoding := r.Header.Get("Content-Encoding")
-		sendsGzip := strings.Contains(contentEncoding, "gzip")
-		if sendsGzip {
+		// Если содержимое содержит gzip
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			cr, err := gzip.NewCompressReader(r.Body)
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				rw.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 			r.Body = cr
 			defer cr.Close()
 		}
 
-		h.ServeHTTP(ow, r)
+		next.ServeHTTP(rw, r)
 	})
 }
