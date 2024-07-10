@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -59,30 +60,32 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
-func Gzip(next http.Handler) http.Handler {
+func Gzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rw := w
+		ow := w
 
-		encodings := r.Header.Get("Accept-Encoding")
-		// Если принимаем gzip то сжимаем
-		if strings.Contains(encodings, "gzip") {
+		acceptEncoding := r.Header.Get("Accept-Encoding")
+		supportsGzip := strings.Contains(acceptEncoding, "gzip")
+		fmt.Println(supportsGzip)
+
+		if supportsGzip {
 			cw := gzip.NewCompressWriter(w)
-			rw = cw
-
+			ow = cw
 			defer cw.Close()
 		}
 
-		// Если содержимое содержит gzip
-		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		contentEncoding := r.Header.Get("Content-Encoding")
+		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		if sendsGzip {
 			cr, err := gzip.NewCompressReader(r.Body)
 			if err != nil {
-				rw.WriteHeader(http.StatusInternalServerError)
+				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 			r.Body = cr
 			defer cr.Close()
 		}
 
-		next.ServeHTTP(rw, r)
+		h.ServeHTTP(ow, r)
 	})
 }
