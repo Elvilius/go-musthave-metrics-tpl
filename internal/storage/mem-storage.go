@@ -66,9 +66,6 @@ func (r *MemStorage) GetAll() []models.Metrics {
 }
 
 func (r *MemStorage) SaveToFile() error {
-	if r.cfg.FileStoragePath == "" {
-		return nil
-	}
 	wd, err := os.Getwd()
 	if err != nil {
 		return err

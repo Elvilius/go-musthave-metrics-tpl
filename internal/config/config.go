@@ -71,7 +71,7 @@ func GetAgentConfig() AgentConfig {
 func GetServerConfig() ServerConfig {
 	cfg := ServerConfig{
 		Address:         getEnvOrDefaultString("ADDRESS", "localhost:8080"),
-		StoreInterval:   getEnvOrDefaultInt("STORE_INTERVAL", 20),
+		StoreInterval:   getEnvOrDefaultInt("STORE_INTERVAL", 300),
 		FileStoragePath: getEnvOrDefaultString("FILE_STORAGE_PATH", "/tmp/metrics-db.json"),
 		Restore:         getEnvOrDefaultBool("RESTORE", true),
 	}
