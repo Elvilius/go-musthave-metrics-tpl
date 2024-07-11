@@ -1,16 +1,22 @@
 package storage
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
 
 type MemStorage struct {
 	metrics map[string]models.Metrics
+	cfg     *config.ServerConfig
 }
 
-func NewMemStorage() handler.Storager {
-	return &MemStorage{metrics: make(map[string]models.Metrics)}
+func NewMemStorage(cfg *config.ServerConfig) handler.Storager {
+	return &MemStorage{metrics: make(map[string]models.Metrics), cfg: cfg}
 }
 
 func (r *MemStorage) Save(metric models.Metrics) error {
@@ -57,4 +63,63 @@ func (r *MemStorage) GetAll() []models.Metrics {
 		all = append(all, m)
 	}
 	return all
+}
+
+func (r *MemStorage) SaveToFile() error {
+	if r.cfg.FileStoragePath == "" {
+		return nil
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(wd, r.cfg.FileStoragePath)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	metrics := r.GetAll()
+	bytes, err := json.Marshal(metrics)
+	if err != nil {
+		return err
+	}
+	_, err = file.Write(bytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *MemStorage) LoadFromFile() error {
+	if r.cfg.FileStoragePath == "" || !r.cfg.Restore {
+		return nil
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(wd, r.cfg.FileStoragePath)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	var loadedMetrics []models.Metrics
+
+	if err := json.Unmarshal(data, &loadedMetrics); err != nil {
+		return err
+	}
+
+	for _, metric := range loadedMetrics {
+		err := r.Save(metric)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

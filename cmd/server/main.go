@@ -23,10 +23,11 @@ func main() {
 
 	sugarLogger := logger.Sugar()
 
-	memStorage := storage.NewMemStorage()
-	handler := handler.NewHandler(memStorage)
 	cfg := config.GetServerConfig()
+
+	memStorage := storage.NewMemStorage(&cfg)
+	handler := handler.NewHandler(memStorage)
 	server := server.New(&cfg, handler, sugarLogger)
 
-	server.Run()
+	server.Run(memStorage)
 }

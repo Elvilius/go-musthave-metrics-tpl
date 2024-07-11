@@ -17,6 +17,8 @@ type Storager interface {
 	Save(metric models.Metrics) error
 	Get(mType, id string) (models.Metrics, bool)
 	GetAll() []models.Metrics
+	SaveToFile() error
+	LoadFromFile() error
 }
 
 func NewHandler(storage Storager) *Handler {

@@ -56,6 +56,14 @@ func (r *TestStorage) GetAll() []models.Metrics {
 	return all
 }
 
+func (r *TestStorage) SaveToFile() error {
+	return nil
+}
+
+func (r *TestStorage) LoadFromFile() error {
+	return nil
+}
+
 func TestHandler_Update(t *testing.T) {
 	type want struct {
 		status int
