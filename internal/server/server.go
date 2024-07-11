@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -59,6 +60,12 @@ func (s *Server) Run(storage handler.Storager) {
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
+
+	wd, err := os.Getwd()
+	dir, _ := filepath.Split(s.cfg.FileStoragePath)
+	if err := os.MkdirAll(filepath.Join(wd, dir), 0o777); err != nil {
+		fmt.Println(err)
+	}
 
 	go func() {
 		for {
