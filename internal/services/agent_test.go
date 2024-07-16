@@ -5,11 +5,19 @@ import (
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func Test_GetMetrics(t *testing.T) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+
+	sugarLogger := logger.Sugar()
+
 	testCfg := config.AgentConfig{PollInterval: 10, ServerAddress: "localhost:8080", ReportInterval: 3}
-	agentServiceMetrics := NewAgentMetricService(testCfg)
+	agentServiceMetrics := NewAgentMetricService(testCfg, sugarLogger)
 
 	metrics := agentServiceMetrics.GetMetric()
 	expectedGauges := []string{

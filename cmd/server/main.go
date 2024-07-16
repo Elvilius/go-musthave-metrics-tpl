@@ -5,13 +5,29 @@ import (
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/server"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
+	"go.uber.org/zap"
 )
 
 func main() {
-	memStorage := storage.NewMemStorage()
-	handler := handler.NewHandler(memStorage)
-	cfg := config.GetServerConfig()
-	server := server.NewServer(&cfg, handler)
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
 
-	server.Run()
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	sugarLogger := logger.Sugar()
+
+	cfg := config.GetServerConfig()
+
+	memStorage := storage.NewMemStorage(&cfg)
+	handler := handler.NewHandler(memStorage)
+	server := server.New(&cfg, handler, sugarLogger)
+
+	server.Run(memStorage)
 }
