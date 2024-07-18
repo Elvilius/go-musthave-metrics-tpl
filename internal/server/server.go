@@ -11,7 +11,7 @@ import (
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
-	middleware "github.com/Elvilius/go-musthave-metrics-tpl/internal/midleware"
+	middleware "github.com/Elvilius/go-musthave-metrics-tpl/pkg/midleware"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )

@@ -45,8 +45,8 @@ func getEnvOrDefaultInt(envVar string, defaultValue int) int {
 	return defaultValue
 }
 
-func GetAgentConfig() AgentConfig {
-	cfg := AgentConfig{
+func NewAgent() *AgentConfig {
+	cfg := &AgentConfig{
 		ServerAddress:  getEnvOrDefaultString("ADDRESS", "localhost:8080"),
 		PollInterval:   getEnvOrDefaultInt("POLL_INTERVAL", 3),
 		ReportInterval: getEnvOrDefaultInt("REPORT_INTERVAL", 10),
@@ -68,8 +68,8 @@ func GetAgentConfig() AgentConfig {
 	return cfg
 }
 
-func GetServerConfig() ServerConfig {
-	cfg := ServerConfig{
+func NewServer() *ServerConfig {
+	cfg := &ServerConfig{
 		Address:         getEnvOrDefaultString("ADDRESS", "localhost:8080"),
 		StoreInterval:   getEnvOrDefaultInt("STORE_INTERVAL", 300),
 		FileStoragePath: getEnvOrDefaultString("FILE_STORAGE_PATH", "/tmp/metrics-db.json"),

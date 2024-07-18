@@ -16,13 +16,13 @@ import (
 )
 
 type Agent struct {
-	cfg       config.AgentConfig
+	cfg       *config.AgentConfig
 	metrics   map[string]models.Metrics
 	pollCount int64
 	logger    *zap.SugaredLogger
 }
 
-func NewAgentMetricService(cfg config.AgentConfig, logger *zap.SugaredLogger) *Agent {
+func NewAgentMetricService(cfg *config.AgentConfig, logger *zap.SugaredLogger) *Agent {
 	return &Agent{cfg: cfg, metrics: make(map[string]models.Metrics), pollCount: 0, logger: logger}
 }
 
