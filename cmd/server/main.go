@@ -1,33 +1,33 @@
 package main
 
 import (
+	"context"
+
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/server"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
-	"go.uber.org/zap"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
+	"github.com/jackc/pgx/v5"
 )
 
 func main() {
-	logger, err := zap.NewDevelopment()
+	logger, err := logger.New()
 	if err != nil {
 		panic(err)
 	}
+	cfg := config.NewServer()
 
-	defer func() {
-		err := logger.Sync()
-		if err != nil {
-			panic(err)
-		}
-	}()
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, cfg.DatabaseDsn)
+	if err != nil {
+		logger.Error("Error connect to database")
+	}
+	defer conn.Close(context.Background())
 
-	sugarLogger := logger.Sugar()
-
-	cfg := config.GetServerConfig()
-
-	memStorage := storage.NewMemStorage(&cfg)
+	memStorage := storage.NewMemStorage(cfg)
 	handler := handler.NewHandler(memStorage)
-	server := server.New(&cfg, handler, sugarLogger)
+	server := server.New(cfg, handler, logger, conn)
 
 	server.Run(memStorage)
 }
