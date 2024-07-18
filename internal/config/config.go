@@ -18,6 +18,7 @@ type ServerConfig struct {
 	StoreInterval   int
 	FileStoragePath string
 	Restore         bool
+	DatabaseDsn     string
 }
 
 func getEnvOrDefaultString(envVar string, defaultValue string) string {
@@ -74,24 +75,27 @@ func NewServer() *ServerConfig {
 		StoreInterval:   getEnvOrDefaultInt("STORE_INTERVAL", 300),
 		FileStoragePath: getEnvOrDefaultString("FILE_STORAGE_PATH", "/tmp/metrics-db.json"),
 		Restore:         getEnvOrDefaultBool("RESTORE", true),
+		DatabaseDsn:     getEnvOrDefaultString("DATABASE_DSN", ""),
 	}
 
 	serverAddress := flag.String("a", cfg.Address, "server address")
 	storeInterval := flag.Int("i", cfg.StoreInterval, "store interval")
 	fileStoragePath := flag.String("f", cfg.FileStoragePath, "file storage path")
 	restore := flag.Bool("r", cfg.Restore, "restore")
-
+	databaseDsn := flag.String("d", cfg.DatabaseDsn, "database dsn")
 	flag.Parse()
 
 	cfg.Address = *serverAddress
 	cfg.StoreInterval = *storeInterval
 	cfg.FileStoragePath = *fileStoragePath
 	cfg.Restore = *restore
+	cfg.DatabaseDsn = *databaseDsn
 
 	fmt.Println("Server Address:", cfg.Address)
 	fmt.Println("Store Interval:", cfg.StoreInterval)
 	fmt.Println("File Storage Path:", cfg.FileStoragePath)
 	fmt.Println("Restore:", cfg.Restore)
+	fmt.Println("Database Dsn", cfg.DatabaseDsn)
 
 	return cfg
 }

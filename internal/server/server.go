@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	middleware "github.com/Elvilius/go-musthave-metrics-tpl/pkg/midleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +25,7 @@ type Server struct {
 	logger  *zap.SugaredLogger
 }
 
-func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.SugaredLogger) *Server {
+func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.SugaredLogger, pgx *pgx.Conn) *Server {
 	router := chi.NewRouter()
 
 	server := &Server{handler: handler, router: router, cfg: cfg, logger: logger}
@@ -36,6 +38,22 @@ func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.Sugared
 	router.Post("/update/", server.handler.UpdateJSON)
 	router.Get("/value/{type}/{id}", server.handler.Value)
 	router.Post("/value/", server.handler.ValueJSON)
+
+	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+
+		if pgx == nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err := pgx.Ping(context.Background())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
 
 	return server
 }
