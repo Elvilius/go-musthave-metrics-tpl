@@ -47,6 +47,7 @@ func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.Sugared
 			return
 		}
 
+
 		err := pgx.Ping(context.Background())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
