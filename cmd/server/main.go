@@ -1,14 +1,14 @@
 package main
 
 import (
-	"context"
+	"database/sql"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/server"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
-	"github.com/jackc/pgx/v5"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -18,16 +18,15 @@ func main() {
 	}
 	cfg := config.NewServer()
 
-	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, cfg.DatabaseDsn)
+	db, err := sql.Open("postgres", cfg.DatabaseDsn)
 	if err != nil {
-		logger.Error("Error connect to database")
+		logger.Fatalw("Failed to open DB", "error", err)
 	}
-	defer conn.Close(context.Background())
+	defer db.Close()
 
-	memStorage := storage.NewMemStorage(cfg)
-	handler := handler.NewHandler(memStorage)
-	server := server.New(cfg, handler, logger, conn)
+	storage := storage.New(cfg, db, logger)
+	handler := handler.NewHandler(storage)
+	server := server.New(cfg, handler, logger, db)
 
-	server.Run(memStorage)
+	server.Run()
 }

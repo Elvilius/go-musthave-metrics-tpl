@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,10 +15,13 @@ type TestStorage struct {
 	metrics map[string]models.Metrics
 }
 
-func (r *TestStorage) Save(metric models.Metrics) error {
+func (r *TestStorage) Save(ctx context.Context, metric models.Metrics) error {
 	mType, ID, value, delta := metric.MType, metric.ID, metric.Value, metric.Delta
 
-	existMetric, ok := r.Get(mType, ID)
+	existMetric, ok, err := r.Get(context.TODO(), mType, ID)
+	if err != nil {
+		return err
+	}
 
 	if mType == models.Gauge {
 		r.metrics[ID] = models.Metrics{ID: ID, MType: mType, Value: value}
@@ -36,32 +40,24 @@ func (r *TestStorage) Save(metric models.Metrics) error {
 	return nil
 }
 
-func (r *TestStorage) Get(mType string, ID string) (models.Metrics, bool) {
+func (r *TestStorage) Get(ctx context.Context, mType string, ID string) (models.Metrics, bool, error) {
 	m, ok := r.metrics[ID]
 	if !ok {
-		return models.Metrics{}, false
+		return models.Metrics{}, false, nil
 	}
 	if m.MType != mType {
-		return models.Metrics{}, false
+		return models.Metrics{}, false, nil
 	}
 
-	return m, true
+	return m, true, nil
 }
 
-func (r *TestStorage) GetAll() []models.Metrics {
+func (r *TestStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
 	all := make([]models.Metrics, 0, len(r.metrics))
 	for _, m := range r.metrics {
 		all = append(all, m)
 	}
-	return all
-}
-
-func (r *TestStorage) SaveToFile() error {
-	return nil
-}
-
-func (r *TestStorage) LoadFromFile() error {
-	return nil
+	return all, nil
 }
 
 func TestHandler_Update(t *testing.T) {
@@ -167,7 +163,7 @@ func TestHandler_Value(t *testing.T) {
 		MType: "gauge",
 		Value: &allocValue,
 	}
-	err := memStorage.Save(allocMetric)
+	err := memStorage.Save(context.TODO(), allocMetric)
 	if err != nil {
 		return
 	}
@@ -179,7 +175,7 @@ func TestHandler_Value(t *testing.T) {
 		Delta: &pollCountValue,
 	}
 
-	err = memStorage.Save(pollCountMetric)
+	err = memStorage.Save(context.TODO(), pollCountMetric)
 	if err != nil {
 		return
 	}
