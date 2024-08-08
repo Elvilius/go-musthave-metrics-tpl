@@ -57,8 +57,12 @@ func (db *DBStorage) Get(ctx context.Context, mType string, ID string) (models.M
 }
 
 func (db *DBStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
-	row, _ := db.DB.QueryContext(ctx, "SELECT id, m_type, value, delta from metrics")
 	metrics := make([]models.Metrics, 0)
+
+	row, err := db.DB.QueryContext(ctx, "SELECT id, m_type, value, delta from metrics")
+	if err != nil {
+		return metrics, err
+	}
 
 	for row.Next() {
 		var metric models.Metrics
