@@ -26,6 +26,7 @@ func main() {
 
 	storage := storage.New(cfg, db, logger)
 	handler := handler.NewHandler(storage)
+
 	server := server.New(cfg, handler, logger, db)
 
 	server.Run()

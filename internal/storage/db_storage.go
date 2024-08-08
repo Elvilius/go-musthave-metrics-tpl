@@ -63,6 +63,9 @@ func (db *DBStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
 	if err != nil {
 		return metrics, err
 	}
+	if row.Err() != nil {
+		return metrics, err
+	}
 
 	for row.Next() {
 		var metric models.Metrics

@@ -19,7 +19,7 @@ func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handle
 	if cfg.DatabaseDsn == "" {
 		memStorage := NewMemStorage(cfg)
 		fs := NewFileStorage(cfg, memStorage)
-		runFile(cfg, fs, logger)
+		go runFile(cfg, fs, logger)
 		return memStorage
 	}
 
