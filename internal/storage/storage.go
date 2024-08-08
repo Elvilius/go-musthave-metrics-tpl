@@ -26,7 +26,7 @@ func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handle
 	if err := goose.Up(db, "./internal/storage/migrations"); err != nil {
 		logger.Fatalw("Failed to run migrations", "error", err)
 	}
-	return NewDbStorage(db)
+	return NewDBStorage(db)
 }
 
 func runFile(cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogger) {

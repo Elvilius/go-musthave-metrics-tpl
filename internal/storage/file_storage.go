@@ -20,19 +20,19 @@ func NewFileStorage(cfg *config.ServerConfig, storage handler.Storager) *FileSto
 	return &FileStorage{cfg: cfg, storage: storage}
 }
 
-func (fs *FileStorage) SaveToFile() error {
+func (f *FileStorage) SaveToFile() error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(wd, fs.cfg.FileStoragePath)
+	path := filepath.Join(wd, f.cfg.FileStoragePath)
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	metrics, err := fs.storage.GetAll(context.TODO())
+	metrics, err := f.storage.GetAll(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -48,8 +48,8 @@ func (fs *FileStorage) SaveToFile() error {
 	return nil
 }
 
-func (fm *FileStorage) LoadFromFile() error {
-	if fm.cfg.FileStoragePath == "" || !fm.cfg.Restore {
+func (f *FileStorage) LoadFromFile() error {
+	if f.cfg.FileStoragePath == "" || !f.cfg.Restore {
 		return nil
 	}
 
@@ -57,7 +57,7 @@ func (fm *FileStorage) LoadFromFile() error {
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(wd, fm.cfg.FileStoragePath)
+	path := filepath.Join(wd, f.cfg.FileStoragePath)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (fm *FileStorage) LoadFromFile() error {
 	}
 
 	for _, metric := range loadedMetrics {
-		err := fm.storage.Save(context.TODO(), metric)
+		err := f.storage.Save(context.TODO(), metric)
 		if err != nil {
 			return err
 		}
