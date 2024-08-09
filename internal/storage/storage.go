@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -17,7 +16,6 @@ import (
 )
 
 func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handler.Storager {
-
 	if cfg.DatabaseDsn == "" {
 		memStorage := NewMemStorage(cfg)
 		fs := NewFileStorage(cfg, memStorage)
@@ -56,7 +54,6 @@ func runFile(cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogge
 		select {
 		case <-ticker.C:
 			err := fs.SaveToFile()
-			
 			if err != nil {
 				logger.Errorln("Failed to save to file:", err)
 			}
