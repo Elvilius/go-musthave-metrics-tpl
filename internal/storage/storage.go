@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"os/signal"
@@ -15,10 +16,13 @@ import (
 )
 
 func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handler.Storager {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	if cfg.DatabaseDsn == "" {
 		memStorage := NewMemStorage(cfg)
 		fs := NewFileStorage(cfg, memStorage)
-		go runFile(cfg, fs, logger)
+		go runFile(ctx, cfg, fs, logger)
 		return memStorage
 	}
 
@@ -28,12 +32,9 @@ func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handle
 	return NewDBStorage(db)
 }
 
-func runFile(cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogger) {
+func runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogger) {
 	ticker := time.NewTicker(time.Duration(cfg.StoreInterval) * time.Second)
 	defer ticker.Stop()
-
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -49,23 +50,19 @@ func runFile(cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogge
 		logger.Errorln("Failed to load from file:", err)
 	}
 
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				err := fs.SaveToFile()
-				if err != nil {
-					logger.Errorln("Failed to save to file:", err)
-				}
-			case <-done:
-				err := fs.SaveToFile()
-				if err != nil {
-					logger.Errorln("Failed to save to file during shutdown:", err)
-				}
-				return
+	for {
+		select {
+		case <-ticker.C:
+			err := fs.SaveToFile()
+			if err != nil {
+				logger.Errorln("Failed to save to file:", err)
 			}
+		case <-ctx.Done():
+			err := fs.SaveToFile()
+			if err != nil {
+				logger.Errorln("Failed to save to file during shutdown:", err)
+			}
+			return
 		}
-	}()
-
-	<-done
+	}
 }
