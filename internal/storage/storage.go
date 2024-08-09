@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -16,13 +17,11 @@ import (
 )
 
 func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handler.Storager {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	if cfg.DatabaseDsn == "" {
 		memStorage := NewMemStorage(cfg)
 		fs := NewFileStorage(cfg, memStorage)
-		go runFile(ctx, cfg, fs, logger)
+		go runFile(cfg, fs, logger)
 		return memStorage
 	}
 
@@ -32,8 +31,11 @@ func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handle
 	return NewDBStorage(db)
 }
 
-func runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogger) {
-	ticker := time.NewTicker(time.Duration(cfg.StoreInterval) * time.Second)
+func runFile(cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogger) {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	ticker := time.NewTicker(time.Duration(1) * time.Second)
 	defer ticker.Stop()
 
 	wd, err := os.Getwd()
@@ -54,6 +56,7 @@ func runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileStorage, log
 		select {
 		case <-ticker.C:
 			err := fs.SaveToFile()
+			
 			if err != nil {
 				logger.Errorln("Failed to save to file:", err)
 			}
