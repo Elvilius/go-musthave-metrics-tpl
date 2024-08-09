@@ -2,7 +2,6 @@ package storage
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -18,8 +17,8 @@ import (
 func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handler.Storager {
 	if cfg.DatabaseDsn == "" {
 		memStorage := NewMemStorage(cfg)
-		//fs := NewFileStorage(cfg, memStorage)
-		//go runFile(cfg, fs, logger)
+		fs := NewFileStorage(cfg, memStorage)
+		go runFile(cfg, fs, logger)
 		return memStorage
 	}
 
@@ -38,16 +37,16 @@ func runFile(cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogge
 
 	wd, err := os.Getwd()
 	if err != nil {
-		fmt.Println(err)
+		logger.Errorln("Failed to get working directory:", err)
 	}
 	dir, _ := filepath.Split(cfg.FileStoragePath)
 	if err := os.MkdirAll(filepath.Join(wd, dir), 0o777); err != nil {
-		fmt.Println(err)
+		logger.Errorln("Failed to create directories:", err)
 	}
 
 	err = fs.LoadFromFile()
 	if err != nil {
-		logger.Errorln(err)
+		logger.Errorln("Failed to load from file:", err)
 	}
 
 	go func() {
@@ -56,14 +55,13 @@ func runFile(cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogge
 			case <-ticker.C:
 				err := fs.SaveToFile()
 				if err != nil {
-					logger.Errorln(err)
+					logger.Errorln("Failed to save to file:", err)
 				}
 			case <-done:
 				err := fs.SaveToFile()
 				if err != nil {
-					logger.Errorln(err)
+					logger.Errorln("Failed to save to file during shutdown:", err)
 				}
-				close(done)
 				return
 			}
 		}
