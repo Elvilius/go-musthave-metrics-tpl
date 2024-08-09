@@ -9,7 +9,7 @@ import (
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
-	_"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 )
 
@@ -21,9 +21,11 @@ func New(ctx context.Context, cfg *config.ServerConfig, db *sql.DB, logger *zap.
 		return memStorage
 	}
 
-	// if err := goose.Up(db, "./internal/storage/migrations"); err != nil {
-	// 	logger.Fatalw("Failed to run migrations", "error", err)
-	// }
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+	if err := goose.UpContext(ctx, db, "./internal/storage/migrations"); err != nil {
+		logger.Fatalw("Failed to run migrations", "error", err)
+	}
 	return NewDBStorage(db)
 }
 
