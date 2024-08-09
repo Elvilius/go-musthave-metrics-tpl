@@ -18,8 +18,8 @@ import (
 func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handler.Storager {
 	if cfg.DatabaseDsn == "" {
 		memStorage := NewMemStorage(cfg)
-		fs := NewFileStorage(cfg, memStorage)
-		go runFile(cfg, fs, logger)
+		//fs := NewFileStorage(cfg, memStorage)
+		//go runFile(cfg, fs, logger)
 		return memStorage
 	}
 
