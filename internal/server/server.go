@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -53,11 +54,14 @@ func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.Sugared
 	return server
 }
 
-func (s *Server) Run() {
-	fmt.Println("Starting server...")
-	err := http.ListenAndServe(s.cfg.Address, s.router)
-	if err != nil {
-		s.logger.Errorln(err)
-		os.Exit(1)
-	}
+func (s *Server) Run(ctx context.Context) {
+	go func() {
+		fmt.Println("Starting server...")
+		err := http.ListenAndServe(s.cfg.Address, s.router)
+		if err != nil {
+			s.logger.Errorln(err)
+			os.Exit(1)
+		}
+	}()
+	<-ctx.Done()
 }

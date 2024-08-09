@@ -35,5 +35,5 @@ func main() {
 
 	server := server.New(cfg, handler, logger, db)
 
-	server.Run()
+	server.Run(ctx)
 }
