@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"os/signal"
+	"syscall"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
@@ -12,6 +15,9 @@ import (
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	defer stop()
 	logger, err := logger.New()
 	if err != nil {
 		panic(err)
@@ -24,7 +30,7 @@ func main() {
 	}
 	defer db.Close()
 
-	storage := storage.New(cfg, db, logger)
+	storage := storage.New(ctx, cfg, db, logger)
 	handler := handler.NewHandler(storage)
 
 	server := server.New(cfg, handler, logger, db)

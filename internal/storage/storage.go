@@ -4,9 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
@@ -15,11 +13,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handler.Storager {
+func New(ctx context.Context, cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handler.Storager {
 	if cfg.DatabaseDsn == "" {
 		memStorage := NewMemStorage(cfg)
 		fs := NewFileStorage(cfg, memStorage)
-		go runFile(cfg, fs, logger)
+		go runFile(ctx, cfg, fs, logger)
 		return memStorage
 	}
 
@@ -29,11 +27,8 @@ func New(cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handle
 	return NewDBStorage(db)
 }
 
-func runFile(cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogger) {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
-	ticker := time.NewTicker(time.Duration(1) * time.Second)
+func runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogger) {
+	ticker := time.NewTicker(time.Duration(cfg.StoreInterval) * time.Second)
 	defer ticker.Stop()
 
 	wd, err := os.Getwd()
@@ -62,6 +57,7 @@ func runFile(cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogge
 			if err != nil {
 				logger.Errorln("Failed to save to file during shutdown:", err)
 			}
+			os.Exit(1)
 			return
 		}
 	}
