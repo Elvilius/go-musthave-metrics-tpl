@@ -24,3 +24,5 @@ vendor/
 .idea
 .vscode
 *tmp
+*docker-compose.yaml
+*.env

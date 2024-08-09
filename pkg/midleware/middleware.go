@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/gzip"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/gzip"
 	"go.uber.org/zap"
 )
 
