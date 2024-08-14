@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
@@ -46,11 +47,13 @@ func (db *DBStorage) Save(ctx context.Context, metric models.Metrics) error {
 func (db *DBStorage) Get(ctx context.Context, mType string, ID string) (models.Metrics, bool, error) {
 	var metric models.Metrics
 	row := db.DB.QueryRowContext(ctx, "SELECT id, m_type, value, delta from metrics WHERE m_type = $1 AND id = $2", mType, ID)
-	if row == nil {
-		return metric, false, nil
-	}
+	fmt.Println(row)
+	
 	err := row.Scan(&metric.ID, &metric.MType, &metric.Value, &metric.Delta)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return metric, false, nil
+		}
 		return metric, false, err
 	}
 	return metric, true, nil
