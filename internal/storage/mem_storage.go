@@ -16,7 +16,7 @@ type MemStorage struct {
 }
 
 func NewMemStorage(cfg *config.ServerConfig) handler.Storager {
-	return &MemStorage{metrics: make(map[string]models.Metrics), cfg: cfg}
+	return &MemStorage{metrics: make(map[string]models.Metrics), cfg: cfg, rw: sync.RWMutex{}}
 }
 
 func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
