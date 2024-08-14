@@ -75,7 +75,7 @@ func NewServer() *ServerConfig {
 		StoreInterval:   getEnvOrDefaultInt("STORE_INTERVAL", 300),
 		FileStoragePath: getEnvOrDefaultString("FILE_STORAGE_PATH", "/tmp/metrics-db.json"),
 		Restore:         getEnvOrDefaultBool("RESTORE", true),
-		DatabaseDsn:     getEnvOrDefaultString("DATABASE_DSN", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"),
+		DatabaseDsn:     getEnvOrDefaultString("DATABASE_DSN", ""),
 	}
 
 	serverAddress := flag.String("a", cfg.Address, "server address")
