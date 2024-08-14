@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"sync"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
@@ -11,6 +12,7 @@ import (
 type MemStorage struct {
 	metrics map[string]models.Metrics
 	cfg     *config.ServerConfig
+	rw      sync.RWMutex
 }
 
 func NewMemStorage(cfg *config.ServerConfig) handler.Storager {
@@ -30,11 +32,16 @@ func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
 	}
 
 	if mType == models.Gauge {
+		m.rw.RLock()
+		defer m.rw.Unlock()
 		m.metrics[ID] = models.Metrics{ID: ID, MType: mType, Value: value}
 		return nil
+
 	}
 	if mType == models.Counter {
 		if !ok {
+			m.rw.RLock()
+			defer m.rw.Unlock()
 			m.metrics[ID] = models.Metrics{ID: ID, MType: mType, Delta: delta}
 			return nil
 		} else {
