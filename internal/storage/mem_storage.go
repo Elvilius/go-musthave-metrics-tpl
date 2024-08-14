@@ -17,50 +17,50 @@ func NewMemStorage(cfg *config.ServerConfig) handler.Storager {
 	return &MemStorage{metrics: make(map[string]models.Metrics), cfg: cfg}
 }
 
-func (r *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
+func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
 	mType, ID, value, delta := metric.MType, metric.ID, metric.Value, metric.Delta
 
 	var defaultDelta int64 = 0
 	if delta == nil {
 		delta = &defaultDelta
 	}
-	existMetric, ok, err := r.Get(ctx, mType, ID)
+	existMetric, ok, err := m.Get(ctx, mType, ID)
 	if err != nil {
 		return err
 	}
 
 	if mType == models.Gauge {
-		r.metrics[ID] = models.Metrics{ID: ID, MType: mType, Value: value}
+		m.metrics[ID] = models.Metrics{ID: ID, MType: mType, Value: value}
 		return nil
 	}
 	if mType == models.Counter {
 		if !ok {
-			r.metrics[ID] = models.Metrics{ID: ID, MType: mType, Delta: delta}
+			m.metrics[ID] = models.Metrics{ID: ID, MType: mType, Delta: delta}
 			return nil
 		} else {
 			delta := *existMetric.Delta + *delta
 			existMetric.Delta = &delta
-			r.metrics[ID] = existMetric
+			m.metrics[ID] = existMetric
 		}
 	}
 	return nil
 }
 
-func (r *MemStorage) Get(ctx context.Context, mType, ID string) (models.Metrics, bool, error) {
-	m, ok := r.metrics[ID]
+func (m *MemStorage) Get(ctx context.Context, mType, ID string) (models.Metrics, bool, error) {
+	metric, ok := m.metrics[ID]
 	if !ok {
 		return models.Metrics{}, false, nil
 	}
-	if m.MType != mType {
+	if metric.MType != mType {
 		return models.Metrics{}, false, nil
 	}
 
-	return m, true, nil
+	return metric, true, nil
 }
 
-func (r *MemStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
-	all := make([]models.Metrics, 0, len(r.metrics))
-	for _, m := range r.metrics {
+func (m *MemStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
+	all := make([]models.Metrics, 0, len(m.metrics))
+	for _, m := range m.metrics {
 		all = append(all, m)
 	}
 	return all, nil
