@@ -32,7 +32,7 @@ func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
 	}
 
 	if mType == models.Gauge {
-		m.rw.RLock()
+		m.rw.Lock()
 		defer m.rw.Unlock()
 		m.metrics[ID] = models.Metrics{ID: ID, MType: mType, Value: value}
 		return nil
@@ -40,7 +40,7 @@ func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
 	}
 	if mType == models.Counter {
 		if !ok {
-			m.rw.RLock()
+			m.rw.Lock()
 			defer m.rw.Unlock()
 			m.metrics[ID] = models.Metrics{ID: ID, MType: mType, Delta: delta}
 			return nil
