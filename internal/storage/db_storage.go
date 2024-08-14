@@ -47,7 +47,6 @@ func (db *DBStorage) Save(ctx context.Context, metric models.Metrics) error {
 func (db *DBStorage) Get(ctx context.Context, mType string, ID string) (models.Metrics, bool, error) {
 	var metric models.Metrics
 	row := db.DB.QueryRowContext(ctx, "SELECT id, m_type, value, delta from metrics WHERE m_type = $1 AND id = $2", mType, ID)
-	fmt.Println(row)
 	
 	err := row.Scan(&metric.ID, &metric.MType, &metric.Value, &metric.Delta)
 	if err != nil {
@@ -83,6 +82,7 @@ func (db *DBStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
 
 func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) error {
 	tx, err := db.DB.Begin()
+
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) erro
 				tx.Rollback()
 				return err
 			}
-			return err
+			continue
 		} else {
 			query := `
 			INSERT INTO metrics (id, m_type, value) 
@@ -112,7 +112,7 @@ func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) erro
 				tx.Rollback()
 				return err
 			}
-			return err
+			continue
 		}
 	}
 	tx.Commit()
