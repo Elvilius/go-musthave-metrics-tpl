@@ -158,6 +158,9 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	metric := models.Metrics{}
 
 	err := json.NewDecoder(r.Body).Decode(&metric)
+
+	defer r.Body.Close()
+	fmt.Println(metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
