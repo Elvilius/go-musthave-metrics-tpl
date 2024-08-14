@@ -39,9 +39,9 @@ func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
 
 	}
 	if mType == models.Counter {
+		m.rw.Lock()
+		defer m.rw.Unlock()
 		if !ok {
-			m.rw.Lock()
-			defer m.rw.Unlock()
 			m.metrics[ID] = models.Metrics{ID: ID, MType: mType, Delta: delta}
 			return nil
 		} else {
