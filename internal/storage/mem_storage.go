@@ -46,7 +46,7 @@ func (r *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
 	return nil
 }
 
-func (r *MemStorage) Get(ctx context.Context, mType string, ID string) (models.Metrics, bool, error) {
+func (r *MemStorage) Get(ctx context.Context, mType, ID string) (models.Metrics, bool, error) {
 	m, ok := r.metrics[ID]
 	if !ok {
 		return models.Metrics{}, false, nil
