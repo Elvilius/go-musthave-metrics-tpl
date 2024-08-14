@@ -60,6 +60,13 @@ func (r *TestStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
 	return all, nil
 }
 
+func (r *TestStorage) Updates(ctx context.Context, metrics []models.Metrics) error {
+	for _, metric := range metrics {
+		r.Save(ctx, metric)
+	}
+	return nil
+}
+
 func TestHandler_Update(t *testing.T) {
 	type want struct {
 		status int

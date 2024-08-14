@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -18,6 +19,7 @@ type Storager interface {
 	Save(ctx context.Context, metric models.Metrics) error
 	Get(ctx context.Context, mType, id string) (models.Metrics, bool, error)
 	GetAll(ctx context.Context) ([]models.Metrics, error)
+	Updates(ctx context.Context, metrics []models.Metrics) error
 }
 
 func NewHandler(storage Storager) *Handler {
@@ -209,4 +211,50 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(123123123123)
+	requestMetrics := []models.Metrics{}
+	err := json.NewDecoder(r.Body).Decode(&requestMetrics)
+	fmt.Println(err)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
+	w.Header().Set("Content-Type", "application/json")
+
+	for _, re := range requestMetrics {
+		fmt.Println(re)
+	}
+	// var responseMetric models.Metrics
+
+	// err = h.storage.Save(r.Context(), requestMetric)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
+	// metric, ok, err := h.storage.Get(r.Context(), requestMetric.MType, requestMetric.ID)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	// if !ok {
+	// 	responseMetric = requestMetric
+	// } else {
+	// 	responseMetric = metric
+	// }
+
+	// res, err := json.Marshal(responseMetric)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
+	// w.WriteHeader(http.StatusOK)
+
+	// _, err = w.Write(res)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
 }

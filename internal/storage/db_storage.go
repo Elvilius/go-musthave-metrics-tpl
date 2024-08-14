@@ -77,3 +77,41 @@ func (db *DBStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
 	}
 	return metrics, nil
 }
+
+func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	for _, metric := range metrics {
+		if metric.MType == models.Counter {
+			query := `
+    		INSERT INTO metrics (id, m_type, delta) 
+    		VALUES ($1, 'counter', $2)
+    		ON CONFLICT (id, m_type) 
+    		DO UPDATE SET delta = metrics.delta + EXCLUDED.delta;`
+			_, err := tx.ExecContext(ctx, query, metric.ID, *metric.Delta)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			return err
+		} else {
+			query := `
+			INSERT INTO metrics (id, m_type, value) 
+			VALUES ($1, 'gauge', $2)
+			ON CONFLICT (id, m_type) 
+			DO UPDATE SET value = EXCLUDED.value;`
+			_, err := tx.ExecContext(ctx, query, metric.ID, *metric.Value)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			return err
+		}
+	}
+	tx.Commit()
+	return nil
+}

@@ -65,3 +65,13 @@ func (r *MemStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
 	}
 	return all, nil
 }
+
+func (m *MemStorage) Updates(ctx context.Context, metrics []models.Metrics) error {
+	for _, metric := range metrics {
+		err := m.Save(ctx, metric)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
