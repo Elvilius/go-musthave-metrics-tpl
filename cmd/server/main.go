@@ -26,7 +26,7 @@ func main() {
 
 	db, err := sql.Open("postgres", cfg.DatabaseDsn)
 	if err != nil {
-		logger.Fatalw("Failed to open DB", "error", err)
+		logger.Fatalw("Failedd to open DB", "error", err)
 	}
 	defer db.Close()
 
