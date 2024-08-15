@@ -129,26 +129,25 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		return
 	}
 
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	defer gz.Close()
-
-	_, err = gz.Write(body)
-	if err != nil {
-		s.logger.Errorln(err)
-		return
-	}
-
-	err = gz.Flush()
-	if err != nil {
-		s.logger.Errorln(err)
-		return
-	}
-
 	client := http.Client{}
 	var req *http.Request
 
 	for i := 0; i < 4; i++ {
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+		defer gz.Close()
+
+		_, err = gz.Write(body)
+		if err != nil {
+			s.logger.Errorln(err)
+			return
+		}
+
+		err = gz.Flush()
+		if err != nil {
+			s.logger.Errorln(err)
+			return
+		}
 		req, err = http.NewRequest("POST", url, &buf)
 		if err != nil {
 			s.logger.Errorln(err)
