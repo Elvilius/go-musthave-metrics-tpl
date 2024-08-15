@@ -26,7 +26,7 @@ func main() {
 
 	db, err := db.New(cfg.DatabaseDsn)
 	if err != nil {
-		logger.Fatalw("Failed to open DB", "error", err)
+		logger.Errorln("Failed to open DB", "error", err)
 	}
 	defer db.Close()
 
