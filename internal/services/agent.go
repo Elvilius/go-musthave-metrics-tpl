@@ -161,7 +161,7 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		res, err := client.Do(req)
 		if err == nil && res.StatusCode == http.StatusOK {
 			defer res.Body.Close()
-			return
+			return 
 		}
 
 		if err != nil {
@@ -171,8 +171,7 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		}
 
 		waitTime := time.Duration(1+2*i) * time.Second
-		timer := time.NewTimer(waitTime)
-		<-timer.C
+		time.Sleep(waitTime)
 	}
 
 	s.logger.Errorln("Failed to send metric after retries")
