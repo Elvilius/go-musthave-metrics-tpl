@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"os/signal"
 	"syscall"
 
@@ -9,7 +10,6 @@ import (
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/server"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
-	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/db"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
 	_ "github.com/lib/pq"
 )
@@ -24,9 +24,9 @@ func main() {
 	}
 	cfg := config.NewServer()
 
-	db, err := db.New(cfg.DatabaseDsn)
+	db, err := sql.Open("postgres", cfg.DatabaseDsn)
 	if err != nil {
-		logger.Errorln("Failed to open DB", "error", err)
+		logger.Fatalw("Failed to open DB", "error", err)
 	}
 	defer db.Close()
 
