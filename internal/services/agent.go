@@ -154,8 +154,8 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 			return
 		}
 
+
 	for i := 0; i < 4; i++ {
-		
 		req.Header.Set("Content-Encoding", "gzip")
 		req.Header.Set("Accept-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
