@@ -160,11 +160,9 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 	for i := 0; i < 4; i++ {
 		res, err := client.Do(req)
 		if err == nil && res.StatusCode == http.StatusOK {
-			
+			defer res.Body.Close()
 			return 
 		}
-
-		defer res.Body.Close()
 
 		if err != nil {
 			s.logger.Errorln("Error sending metric:", err)
