@@ -164,11 +164,11 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 			return 
 		}
 
-		if err != nil {
-			s.logger.Errorln("Error sending metric:", err)
-		} else if res.StatusCode != http.StatusOK {
-			s.logger.Errorln("Received non-OK response:", res.Status)
-		}
+		// if err != nil {
+		// 	s.logger.Errorln("Error sending metric:", err)
+		// } else if res.StatusCode != http.StatusOK {
+		// 	s.logger.Errorln("Received non-OK response:", res.Status)
+		// }
 
 		waitTime := time.Duration(1+2*i) * time.Second
 		time.Sleep(waitTime)
