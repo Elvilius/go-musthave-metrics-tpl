@@ -125,6 +125,7 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	var responseMetric models.Metrics
 
 	err = h.storage.Save(r.Context(), requestMetric)
+	fmt.Println(err)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -166,6 +167,7 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	m, ok, err := h.storage.Get(r.Context(), metric.MType, metric.ID)
+	fmt.Println(err)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

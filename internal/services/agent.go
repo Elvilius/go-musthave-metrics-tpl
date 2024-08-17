@@ -167,7 +167,7 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 			s.logger.Errorln("Error sending metric:", err)
 		} else if res.StatusCode != http.StatusOK {
 			s.logger.Errorln("Received non-OK response:", res.Status)
-			res.Body.Close() // Закрываем тело ответа для освобождения ресурсов
+			res.Body.Close()
 		}
 
 		waitTime := time.Duration(1+2*i) * time.Second
