@@ -153,11 +153,13 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 			s.logger.Errorln(err)
 			return
 		}
+
+	for i := 0; i < 4; i++ {
+		
 		req.Header.Set("Content-Encoding", "gzip")
 		req.Header.Set("Accept-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
 
-	for i := 0; i < 4; i++ {
 		res, err := client.Do(req)
 		if err == nil && res.StatusCode == http.StatusOK {
 			defer res.Body.Close()
