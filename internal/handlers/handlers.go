@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -226,6 +227,7 @@ func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 
 	errUpdate := h.storage.Updates(ctx, requestMetrics)
 
+	fmt.Println(errUpdate)
 	if errUpdate != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
