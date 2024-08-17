@@ -131,7 +131,6 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
-	defer gz.Close()
 
 	_, err = gz.Write(body)
 	if err != nil {
@@ -139,23 +138,21 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		return
 	}
 
-	err = gz.Flush()
+	err = gz.Close()
 	if err != nil {
 		s.logger.Errorln(err)
 		return
 	}
 
 	client := http.Client{}
-	var req *http.Request
 
-	req, err = http.NewRequest("POST", url, &buf)
+	for i := 0; i < 4; i++ {
+		req, err := http.NewRequest("POST", url, &buf)
 		if err != nil {
 			s.logger.Errorln(err)
 			return
 		}
 
-
-	for i := 0; i < 4; i++ {
 		req.Header.Set("Content-Encoding", "gzip")
 		req.Header.Set("Accept-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
@@ -163,13 +160,14 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		res, err := client.Do(req)
 		if err == nil && res.StatusCode == http.StatusOK {
 			defer res.Body.Close()
-			return 
+			return
 		}
 
 		if err != nil {
 			s.logger.Errorln("Error sending metric:", err)
 		} else if res.StatusCode != http.StatusOK {
 			s.logger.Errorln("Received non-OK response:", res.Status)
+			res.Body.Close() // Закрываем тело ответа для освобождения ресурсов
 		}
 
 		waitTime := time.Duration(1+2*i) * time.Second
