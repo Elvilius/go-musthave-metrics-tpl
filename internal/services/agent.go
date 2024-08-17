@@ -128,7 +128,6 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		s.logger.Errorln(err)
 		return
 	}
-
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	defer gz.Close()
@@ -146,35 +145,21 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 	}
 
 	client := http.Client{}
-	var req *http.Request
-
-	for i := 0; i < 4; i++ {
-		req, err = http.NewRequest("POST", url, &buf)
-		if err != nil {
-			s.logger.Errorln(err)
-			return
-		}
-		req.Header.Set("Content-Encoding", "gzip")
-		req.Header.Set("Accept-Encoding", "gzip")
-		req.Header.Set("Content-Type", "application/json")
-
-		res, err := client.Do(req)
-		if err == nil && res.StatusCode == http.StatusOK {
-			defer res.Body.Close()
-			return 
-		}
-
-		if err != nil {
-			s.logger.Errorln("Error sending metric:", err)
-		} else if res.StatusCode != http.StatusOK {
-			s.logger.Errorln("Received non-OK response:", res.Status)
-		}
-
-		waitTime := time.Duration(1+2*i) * time.Second
-		time.Sleep(waitTime)
+	req, err := http.NewRequest("POST", url, &buf)
+	if err != nil {
+		s.logger.Errorln(err)
+		return
 	}
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json")
 
-	s.logger.Errorln("Failed to send metric after retries")
+	res, err := client.Do(req)
+	if err != nil {
+		s.logger.Errorln(err)
+		return
+	}
+	defer res.Body.Close()
 }
 
 func (s *Agent) Run() {
