@@ -125,7 +125,6 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	var responseMetric models.Metrics
 
 	err = h.storage.Save(r.Context(), requestMetric)
-	fmt.Println(err)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -229,7 +228,6 @@ func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 
 	errUpdate := h.storage.Updates(ctx, requestMetrics)
 
-	fmt.Println(errUpdate)
 	if errUpdate != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
