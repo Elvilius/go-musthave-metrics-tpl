@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -10,14 +11,14 @@ import (
 	"github.com/lib/pq"
 )
 
-func New(dsn string) (*sql.DB, error) {
+func New(ctx context.Context, dsn string) (*sql.DB, error) {
 	var db *sql.DB
 	var err error
 
 	for i := 0; i < 4; i++ {
 		db, err = sql.Open("postgres", dsn)
 		if err == nil {
-			err = db.Ping()
+			err = db.PingContext(ctx)
 			if err == nil {
 				return db, nil
 			}

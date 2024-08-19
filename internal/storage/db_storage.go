@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
@@ -26,9 +25,6 @@ func (db *DBStorage) Save(ctx context.Context, metric models.Metrics) error {
     		ON CONFLICT (id, m_type) 
     		DO UPDATE SET delta = metrics.delta + EXCLUDED.delta;`
 		_, err := db.DB.ExecContext(ctx, query, metric.ID, *metric.Delta)
-		if err != nil {
-			fmt.Println(err)
-		}
 		return err
 	} else {
 		query := `
@@ -37,9 +33,6 @@ func (db *DBStorage) Save(ctx context.Context, metric models.Metrics) error {
 			ON CONFLICT (id, m_type) 
 			DO UPDATE SET value = EXCLUDED.value;`
 		_, err := db.DB.ExecContext(ctx, query, metric.ID, *metric.Value)
-		if err != nil {
-			fmt.Println(err)
-		}
 		return err
 	}
 }
@@ -85,35 +78,37 @@ func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) erro
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
 
 	for _, metric := range metrics {
+		var query string
+		var args []interface{}
+
 		if metric.MType == models.Counter {
-			query := `
-    		INSERT INTO metrics (id, m_type, delta) 
-    		VALUES ($1, 'counter', $2)
-    		ON CONFLICT (id, m_type) 
-    		DO UPDATE SET delta = metrics.delta + EXCLUDED.delta;`
-			_, err := tx.ExecContext(ctx, query, metric.ID, *metric.Delta)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-			continue
+			query = `
+			INSERT INTO metrics (id, m_type, delta) 
+			VALUES ($1, 'counter', $2)
+			ON CONFLICT (id, m_type) 
+			DO UPDATE SET delta = metrics.delta + EXCLUDED.delta;`
+			args = []interface{}{metric.ID, *metric.Delta}
 		} else {
-			query := `
+			query = `
 			INSERT INTO metrics (id, m_type, value) 
 			VALUES ($1, 'gauge', $2)
 			ON CONFLICT (id, m_type) 
 			DO UPDATE SET value = EXCLUDED.value;`
-			_, err := tx.ExecContext(ctx, query, metric.ID, *metric.Value)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-			continue
+			args = []interface{}{metric.ID, *metric.Value}
+		}
+
+		_, err := tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			tx.Rollback()
+			return err
 		}
 	}
-	tx.Commit()
+	errCommit := tx.Commit()
+	if errCommit != nil {
+		tx.Rollback()
+		return errCommit
+	} 
 	return nil
 }

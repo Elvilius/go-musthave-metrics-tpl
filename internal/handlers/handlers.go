@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -87,6 +86,7 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	m, ok, err := h.storage.Get(r.Context(), mType, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
@@ -166,7 +166,6 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	m, ok, err := h.storage.Get(r.Context(), metric.MType, metric.ID)
-	fmt.Println(err)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

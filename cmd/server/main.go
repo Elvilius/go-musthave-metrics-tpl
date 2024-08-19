@@ -20,7 +20,7 @@ func main() {
 	defer stop()
 	logger, err := logger.New()
 	if err != nil {
-		panic(err)
+		logger.Fatal(err)
 	}
 	cfg := config.NewServer()
 
