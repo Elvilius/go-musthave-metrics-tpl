@@ -1,17 +1,15 @@
 package server
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
-	"path/filepath"
-	"syscall"
-	"time"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
-	middleware "github.com/Elvilius/go-musthave-metrics-tpl/internal/midleware"
+	middleware "github.com/Elvilius/go-musthave-metrics-tpl/pkg/midleware"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
@@ -23,7 +21,7 @@ type Server struct {
 	logger  *zap.SugaredLogger
 }
 
-func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.SugaredLogger) *Server {
+func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.SugaredLogger, db *sql.DB) *Server {
 	router := chi.NewRouter()
 
 	server := &Server{handler: handler, router: router, cfg: cfg, logger: logger}
@@ -36,55 +34,35 @@ func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.Sugared
 	router.Post("/update/", server.handler.UpdateJSON)
 	router.Get("/value/{type}/{id}", server.handler.Value)
 	router.Post("/value/", server.handler.ValueJSON)
+	router.Post("/updates/", server.handler.UpdatesJSON)
+
+	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+
+		if db == nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err := db.Ping()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
 
 	return server
 }
 
-func (s *Server) Run(storage handler.Storager) {
-	err := storage.LoadFromFile()
-	if err != nil {
-		s.logger.Errorln(err)
-	}
-
+func (s *Server) Run(ctx context.Context) {
 	go func() {
 		fmt.Println("Starting server...")
-		err = http.ListenAndServe(s.cfg.Address, s.router)
+		err := http.ListenAndServe(s.cfg.Address, s.router)
 		if err != nil {
 			s.logger.Errorln(err)
 			os.Exit(1)
 		}
 	}()
-
-	ticker := time.NewTicker(time.Duration(s.cfg.StoreInterval) * time.Second)
-	defer ticker.Stop()
-
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
-
-	wd, err := os.Getwd()
-	dir, _ := filepath.Split(s.cfg.FileStoragePath)
-	if err := os.MkdirAll(filepath.Join(wd, dir), 0o777); err != nil {
-		fmt.Println(err)
-	}
-
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				err := storage.SaveToFile()
-				if err != nil {
-					s.logger.Errorln(err)
-				}
-			case <-done:
-				err := storage.SaveToFile()
-				if err != nil {
-					s.logger.Errorln(err)
-				}
-				close(done)
-				return
-			}
-		}
-	}()
-
-	<-done
+	<-ctx.Done()
 }

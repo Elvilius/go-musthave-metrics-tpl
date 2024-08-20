@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -14,11 +15,10 @@ type Handler struct {
 }
 
 type Storager interface {
-	Save(metric models.Metrics) error
-	Get(mType, id string) (models.Metrics, bool)
-	GetAll() []models.Metrics
-	SaveToFile() error
-	LoadFromFile() error
+	Save(ctx context.Context, metric models.Metrics) error
+	Get(ctx context.Context, mType, id string) (models.Metrics, bool, error)
+	GetAll(ctx context.Context) ([]models.Metrics, error)
+	Updates(ctx context.Context, metrics []models.Metrics) error
 }
 
 func NewHandler(storage Storager) *Handler {
@@ -67,7 +67,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		metric.Value = &parseFloat
 	}
 
-	err := h.storage.Save(metric)
+	err := h.storage.Save(r.Context(), metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -79,17 +79,21 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
 	id := chi.URLParam(r, "id")
+	var err error
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	m, ok := h.storage.Get(mType, id)
+	m, ok, err := h.storage.Get(r.Context(), mType, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	var bytes []byte
-	var err error
 	if m.MType == models.Counter {
 		bytes, err = json.Marshal(m.Delta)
 	} else {
@@ -120,12 +124,16 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 
 	var responseMetric models.Metrics
 
-	err = h.storage.Save(requestMetric)
+	err = h.storage.Save(r.Context(), requestMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	metric, ok := h.storage.Get(requestMetric.MType, requestMetric.ID)
+	metric, ok, err := h.storage.Get(r.Context(), requestMetric.MType, requestMetric.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if !ok {
 		responseMetric = requestMetric
 	} else {
@@ -150,12 +158,18 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	metric := models.Metrics{}
 
 	err := json.NewDecoder(r.Body).Decode(&metric)
+
+	defer r.Body.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	w.Header().Set("Content-Type", "application/json")
 
-	m, ok := h.storage.Get(metric.MType, metric.ID)
+	m, ok, err := h.storage.Get(r.Context(), metric.MType, metric.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -181,7 +195,11 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m := h.storage.GetAll()
+	m, err := h.storage.GetAll(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	bytes, err := json.Marshal(m)
 	if err != nil {
@@ -195,4 +213,24 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestMetrics := []models.Metrics{}
+	err := json.NewDecoder(r.Body).Decode(&requestMetrics)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	errUpdate := h.storage.Updates(ctx, requestMetrics)
+
+	if errUpdate != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

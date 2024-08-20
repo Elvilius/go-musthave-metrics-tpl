@@ -16,13 +16,13 @@ import (
 )
 
 type Agent struct {
-	cfg       config.AgentConfig
+	cfg       *config.AgentConfig
 	metrics   map[string]models.Metrics
 	pollCount int64
 	logger    *zap.SugaredLogger
 }
 
-func NewAgentMetricService(cfg config.AgentConfig, logger *zap.SugaredLogger) *Agent {
+func NewAgentMetricService(cfg *config.AgentConfig, logger *zap.SugaredLogger) *Agent {
 	return &Agent{cfg: cfg, metrics: make(map[string]models.Metrics), pollCount: 0, logger: logger}
 }
 
@@ -128,9 +128,9 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		s.logger.Errorln(err)
 		return
 	}
+
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
-	defer gz.Close()
 
 	_, err = gz.Write(body)
 	if err != nil {
@@ -138,28 +138,42 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		return
 	}
 
-	err = gz.Flush()
+	err = gz.Close()
 	if err != nil {
 		s.logger.Errorln(err)
 		return
 	}
 
 	client := http.Client{}
-	req, err := http.NewRequest("POST", url, &buf)
-	if err != nil {
-		s.logger.Errorln(err)
-		return
-	}
-	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("Accept-Encoding", "gzip")
-	req.Header.Set("Content-Type", "application/json")
 
-	res, err := client.Do(req)
-	if err != nil {
-		s.logger.Errorln(err)
-		return
+	for _, delay := range []time.Duration{time.Second, 2*time.Second, 3*time.Second} {
+		req, err := http.NewRequest("POST", url, &buf)
+		if err != nil {
+			s.logger.Errorln(err)
+			return
+		}
+
+		req.Header.Set("Content-Encoding", "gzip")
+		req.Header.Set("Accept-Encoding", "gzip")
+		req.Header.Set("Content-Type", "application/json")
+
+		res, err := client.Do(req)
+		if err == nil && res.StatusCode == http.StatusOK {
+			defer res.Body.Close()
+			return
+		}
+
+		if err != nil {
+			s.logger.Errorln("Error sending metric:", err)
+		} else if res.StatusCode != http.StatusOK {
+			s.logger.Errorln("Received non-OK response:", res.Status)
+			res.Body.Close()
+		}
+
+		time.Sleep(delay)
 	}
-	defer res.Body.Close()
+
+	s.logger.Errorln("Failed to send metric after retries")
 }
 
 func (s *Agent) Run() {

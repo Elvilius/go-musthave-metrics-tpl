@@ -1,33 +1,39 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	"os/signal"
+	"syscall"
+
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/server"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
-	"go.uber.org/zap"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
+	_ "github.com/lib/pq"
 )
 
 func main() {
-	logger, err := zap.NewDevelopment()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	defer stop()
+	logger, err := logger.New()
 	if err != nil {
-		panic(err)
+		logger.Fatal(err)
 	}
+	cfg := config.NewServer()
 
-	defer func() {
-		err := logger.Sync()
-		if err != nil {
-			panic(err)
-		}
-	}()
+	db, err := sql.Open("postgres", cfg.DatabaseDsn)
+	if err != nil {
+		logger.Fatalw("Failed to open DB", "error", err)
+	}
+	defer db.Close()
 
-	sugarLogger := logger.Sugar()
+	storage := storage.New(ctx, cfg, db, logger)
+	handler := handler.NewHandler(storage)
 
-	cfg := config.GetServerConfig()
+	server := server.New(cfg, handler, logger, db)
 
-	memStorage := storage.NewMemStorage(&cfg)
-	handler := handler.NewHandler(memStorage)
-	server := server.New(&cfg, handler, sugarLogger)
-
-	server.Run(memStorage)
+	server.Run(ctx)
 }
