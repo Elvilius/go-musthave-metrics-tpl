@@ -129,11 +129,6 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		s.logger.Errorln(err)
 		return
 	}
-
-	var dataHash string
-	if s.cfg.Key != "" {
-		dataHash = hashing.GenerateHash(s.cfg.Key, body)
-	}
 	client := http.Client{}
 	for _, delay := range []time.Duration{time.Second, 2 * time.Second, 3 * time.Second} {
 		var buf bytes.Buffer
@@ -160,7 +155,8 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		req.Header.Set("Content-Encoding", "gzip")
 		req.Header.Set("Accept-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
-		if dataHash != "" {
+		if s.cfg.Key != "" {
+			dataHash := hashing.GenerateHash(s.cfg.Key, body)
 			req.Header.Set("HashSHA256", dataHash)
 		}
 
