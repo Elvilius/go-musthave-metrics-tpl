@@ -157,6 +157,7 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		req.Header.Set("Content-Type", "application/json")
 		if s.cfg.Key != "" {
 			dataHash := hashing.GenerateHash(s.cfg.Key, body)
+			fmt.Println(dataHash, s.cfg.Key)
 			req.Header.Set("HashSHA256", dataHash)
 		}
 
