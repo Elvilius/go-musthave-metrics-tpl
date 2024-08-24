@@ -197,9 +197,9 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	h.setHeaderHash(w, bytes)
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
 
 	_, err = w.Write(bytes)
 	if err != nil {
@@ -226,8 +226,8 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.setHeaderHash(w, bytes)
 	w.Header().Set("Content-Type", "text/html")
+	h.setHeaderHash(w, bytes)
 	w.WriteHeader(http.StatusOK)
 
 	_, err = w.Write(bytes)
