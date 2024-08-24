@@ -82,6 +82,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	mType := chi.URLParam(r, "type")
 	id := chi.URLParam(r, "id")
 	var err error
@@ -107,10 +108,8 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	h.setHeaderHash(w, bytes)
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
 	_, err = w.Write(bytes)
 	if err != nil {
@@ -120,6 +119,7 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	bytesReq, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -163,7 +163,6 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 
 	h.setHeaderHash(w, res)
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
 
 	_, err = w.Write(res)
 	if err != nil {
