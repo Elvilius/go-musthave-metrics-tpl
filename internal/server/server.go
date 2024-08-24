@@ -28,6 +28,7 @@ func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.Sugared
 
 	router.Use(middleware.Logging(*logger))
 	router.Use(middleware.Gzip)
+	router.Use(middleware.VerifyHash(cfg, *logger))
 
 	router.Get("/", server.handler.All)
 	router.Post("/update/{type}/{id}/{value}", server.handler.Update)

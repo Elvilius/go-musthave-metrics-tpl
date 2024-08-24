@@ -1,22 +1,17 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"strconv"
 
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
-	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
 	storage Storager
-	cfg     *config.ServerConfig
 }
 
 type Storager interface {
@@ -26,8 +21,8 @@ type Storager interface {
 	Updates(ctx context.Context, metrics []models.Metrics) error
 }
 
-func NewHandler(storage Storager, cfg *config.ServerConfig) *Handler {
-	return &Handler{storage: storage, cfg: cfg}
+func NewHandler(storage Storager) *Handler {
+	return &Handler{storage: storage}
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -82,10 +77,11 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	mType := chi.URLParam(r, "type")
 	id := chi.URLParam(r, "id")
 	var err error
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
 	m, ok, err := h.storage.Get(r.Context(), mType, id)
 	if err != nil {
@@ -108,9 +104,8 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	h.setHeaderHash(w, bytes)
-	w.WriteHeader(http.StatusOK)
 
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -119,23 +114,15 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	bytesReq, err := io.ReadAll(r.Body)
+	requestMetric := models.Metrics{}
+	err := json.NewDecoder(r.Body).Decode(&requestMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 
-	h.verifyRequestHash(w, r.Header.Get("HashSHA256"), bytesReq)
-
-	bodyReader := bytes.NewReader(bytesReq)
-	requestMetric := models.Metrics{}
-	err = json.NewDecoder(bodyReader).Decode(&requestMetric)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	w.Header().Set("Content-Type", "application/json")
 
 	var responseMetric models.Metrics
 
@@ -160,8 +147,6 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	h.setHeaderHash(w, res)
 	w.WriteHeader(http.StatusOK)
 
 	_, err = w.Write(res)
@@ -180,6 +165,7 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
+	w.Header().Set("Content-Type", "application/json")
 
 	m, ok, err := h.storage.Get(r.Context(), metric.MType, metric.ID)
 	if err != nil {
@@ -197,10 +183,7 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	h.setHeaderHash(w, bytes)
 	w.WriteHeader(http.StatusOK)
-
 	_, err = w.Write(bytes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -225,11 +208,8 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Type", "text/html")
-	h.setHeaderHash(w, bytes)
 	w.WriteHeader(http.StatusOK)
-
 	_, err = w.Write(bytes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -239,23 +219,13 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	bytesReq, err := io.ReadAll(r.Body)
+	requestMetrics := []models.Metrics{}
+	err := json.NewDecoder(r.Body).Decode(&requestMetrics)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
-
-	h.verifyRequestHash(w, r.Header.Get("HashSHA256"), bytesReq)
-
-	requestMetrics := []models.Metrics{}
-	bodyReader := bytes.NewReader(bytesReq)
-	err = json.NewDecoder(bodyReader).Decode(&requestMetrics)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	w.Header().Set("Content-Type", "application/json")
 
 	errUpdate := h.storage.Updates(ctx, requestMetrics)
@@ -266,25 +236,4 @@ func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func (h *Handler) verifyRequestHash(w http.ResponseWriter, hash string, data []byte) {
-	if h.cfg.Key == "" {
-		return
-	}
-	ok := hashing.VerifyHash(h.cfg.Key, data, hash)
-	
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-}
-
-func (h *Handler) setHeaderHash(w http.ResponseWriter, data []byte) {
-	if h.cfg.Key == "" {
-		return
-	}
-
-	hash := hashing.GenerateHash(h.cfg.Key, data)
-	w.Header().Set("HashSHA256", hash)
 }

@@ -31,7 +31,7 @@ func main() {
 	defer db.Close()
 
 	storage := storage.New(ctx, cfg, db, logger)
-	handler := handler.NewHandler(storage, cfg)
+	handler := handler.NewHandler(storage)
 
 	server := server.New(cfg, handler, logger, db)
 

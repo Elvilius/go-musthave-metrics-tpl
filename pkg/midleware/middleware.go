@@ -1,11 +1,15 @@
 package middleware
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/gzip"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"go.uber.org/zap"
 )
 
@@ -86,4 +90,27 @@ func Gzip(h http.Handler) http.Handler {
 
 		h.ServeHTTP(ow, r)
 	})
+}
+
+func VerifyHash(cfg *config.ServerConfig, logger zap.SugaredLogger) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			if cfg.Key != "" {
+				data, err := io.ReadAll(r.Body)
+				if err != nil {
+					logger.Errorw("err", err)
+					return
+				}
+				if ok := hashing.VerifyHash(cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				r.Body = io.NopCloser(bytes.NewBuffer(data))
+
+			}
+
+			h.ServeHTTP(w, r)
+		})
+	}
 }
