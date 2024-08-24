@@ -28,14 +28,13 @@ func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.Sugared
 
 	router.Use(middleware.Logging(*logger))
 	router.Use(middleware.Gzip)
-	router.Use(middleware.VerifyHash(cfg, *logger))
 
 	router.Get("/", server.handler.All)
 	router.Post("/update/{type}/{id}/{value}", server.handler.Update)
-	router.Post("/update/", server.handler.UpdateJSON)
+	router.Post("/update/", middleware.VerifyHash(cfg, *logger, http.HandlerFunc(server.handler.UpdateJSON)))
 	router.Get("/value/{type}/{id}", server.handler.Value)
 	router.Post("/value/", server.handler.ValueJSON)
-	router.Post("/updates/", server.handler.UpdatesJSON)
+	router.Post("/updates/", middleware.VerifyHash(cfg, *logger, http.HandlerFunc(server.handler.UpdatesJSON)))
 
 	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")

@@ -91,26 +91,21 @@ func Gzip(h http.Handler) http.Handler {
 		h.ServeHTTP(ow, r)
 	})
 }
-
-func VerifyHash(cfg *config.ServerConfig, logger zap.SugaredLogger) func(http.Handler) http.Handler {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-			if cfg.Key != "" {
-				data, err := io.ReadAll(r.Body)
-				if err != nil {
-					logger.Errorw("err", err)
-					return
-				}
-				if ok := hashing.VerifyHash(cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
-				r.Body = io.NopCloser(bytes.NewBuffer(data))
-
+func VerifyHash(cfg *config.ServerConfig, logger zap.SugaredLogger, next http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if cfg.Key != "" {
+			data, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, "Error reading request body", http.StatusInternalServerError)
+				return
 			}
+			if ok := hashing.VerifyHash(cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
+				http.Error(w, "Invalid hash", http.StatusBadRequest)
+				return
+			}
+			r.Body = io.NopCloser(bytes.NewBuffer(data))
+		}
 
-			h.ServeHTTP(w, r)
-		})
-	}
+		next.ServeHTTP(w, r)
+	})
 }
