@@ -82,7 +82,7 @@ func NewServer() *ServerConfig {
 		FileStoragePath: getEnvOrDefaultString("FILE_STORAGE_PATH", "/tmp/metrics-db.json"),
 		Restore:         getEnvOrDefaultBool("RESTORE", true),
 		DatabaseDsn:     getEnvOrDefaultString("DATABASE_DSN", ""),
-		Key:             getEnvOrDefaultString("KEY", "werwerwer"),
+		Key:             getEnvOrDefaultString("KEY", ""),
 	}
 
 	serverAddress := flag.String("a", cfg.Address, "server address")
