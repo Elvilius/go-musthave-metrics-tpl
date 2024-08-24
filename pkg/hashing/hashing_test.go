@@ -15,7 +15,8 @@ func TestHashingTrue(t *testing.T) {
 
 func TestHashingFalse(t *testing.T) {
 	data := []byte("test data")
+	data2 := []byte("ewrwer")
 	hash := GenerateHash("secret", data)
-	ok := VerifyHash("secrets", data, hash)
+	ok := VerifyHash("secrets", data2, hash)
 	assert.False(t, ok)
 }
