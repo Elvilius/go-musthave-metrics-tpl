@@ -74,9 +74,6 @@ func NewAgent() *AgentConfig {
 
 	return cfg
 }
-var flagParsed bool
-
-
 
 func NewServer() *ServerConfig {
 	cfg := &ServerConfig{
