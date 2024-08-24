@@ -74,6 +74,9 @@ func NewAgent() *AgentConfig {
 
 	return cfg
 }
+var flagParsed bool
+
+
 
 func NewServer() *ServerConfig {
 	cfg := &ServerConfig{
@@ -91,6 +94,8 @@ func NewServer() *ServerConfig {
 	restore := flag.Bool("r", cfg.Restore, "restore")
 	databaseDsn := flag.String("d", cfg.DatabaseDsn, "database dsn")
 	secretKey := flag.String("k", cfg.Key, "secret key")
+
+	flag.Parse()
 
 	cfg.Address = *serverAddress
 	cfg.StoreInterval = *storeInterval
