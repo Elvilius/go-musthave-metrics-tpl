@@ -2,9 +2,7 @@ package middleware
 
 import (
 	"bytes"
-	_ "bytes"
 	"io"
-	_ "io"
 	"net/http"
 	"strings"
 	"time"
@@ -12,7 +10,6 @@ import (
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/gzip"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
-	_ "github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"go.uber.org/zap"
 )
 
