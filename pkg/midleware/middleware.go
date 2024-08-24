@@ -103,11 +103,6 @@ func VerifyHash(cfg *config.ServerConfig, logger zap.SugaredLogger, next http.Ha
 		}
 
 		if cfg.Key != "" {
-			data, err := io.ReadAll(r.Body)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
 			if ok := hashing.VerifyHash(cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
 				w.WriteHeader(http.StatusBadRequest)
 				return
