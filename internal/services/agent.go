@@ -130,27 +130,26 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		return
 	}
 
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-
-	_, err = gz.Write(body)
-	if err != nil {
-		s.logger.Errorln(err)
-		return
-	}
-
-	err = gz.Close()
-	if err != nil {
-		s.logger.Errorln(err)
-		return
-	}
-
 	client := http.Client{}
-
 	for _, delay := range []time.Duration{time.Second, 2 * time.Second, 3 * time.Second} {
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+
+		_, err := gz.Write(body)
+		if err != nil {
+			s.logger.Errorln("Error writing to gzip writer:", err)
+			return
+		}
+
+		err = gz.Close()
+		if err != nil {
+			s.logger.Errorln("Error closing gzip writer:", err)
+			return
+		}
+
 		req, err := http.NewRequest("POST", url, &buf)
 		if err != nil {
-			s.logger.Errorln(err)
+			s.logger.Errorln("Error creating request:", err)
 			return
 		}
 

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -96,11 +97,11 @@ func VerifyHash(cfg *config.ServerConfig, logger zap.SugaredLogger, next http.Ha
 		if cfg.Key != "" {
 			data, err := io.ReadAll(r.Body)
 			if err != nil {
-				http.Error(w, "Error reading request body", http.StatusInternalServerError)
+				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 			if ok := hashing.VerifyHash(cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
-				http.Error(w, "Invalid hash", http.StatusBadRequest)
+				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 			r.Body = io.NopCloser(bytes.NewBuffer(data))
