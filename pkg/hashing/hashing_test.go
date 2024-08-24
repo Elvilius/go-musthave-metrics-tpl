@@ -8,18 +8,14 @@ import (
 
 func TestHashingTrue(t *testing.T) {
 	data := []byte("test data")
-	hash, err := GenerateHash("secret", data)
-	assert.NoError(t, err)
-	ok, err := VerifyHash("secret", data, hash)
-	assert.NoError(t, err)
+	hash := GenerateHash("secret", data)
+	ok := VerifyHash("secret", data, hash)
 	assert.True(t, ok)
 }
 
 func TestHashingFalse(t *testing.T) {
 	data := []byte("test data")
-	hash, err := GenerateHash("secret", data)
-	assert.NoError(t, err)
-	ok, err := VerifyHash("secrets", data, hash)
-	assert.Error(t, err)
+	hash := GenerateHash("secret", data)
+	ok := VerifyHash("secrets", data, hash)
 	assert.False(t, ok)
 }

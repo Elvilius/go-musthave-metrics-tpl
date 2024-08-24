@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -274,12 +273,8 @@ func (h *Handler) verifyRequestHash(w http.ResponseWriter, hash string, data []b
 	if h.cfg.Key == "" {
 		return
 	}
-	ok, err := hashing.VerifyHash(h.cfg.Key, data, hash)
-	fmt.Println(ok, err, hash)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	ok := hashing.VerifyHash(h.cfg.Key, data, hash)
+	
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -291,10 +286,6 @@ func (h *Handler) setHeaderHash(w http.ResponseWriter, data []byte) {
 		return
 	}
 
-	hash, err := hashing.GenerateHash(h.cfg.Key, data)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	hash := hashing.GenerateHash(h.cfg.Key, data)
 	w.Header().Set("HashSHA256", hash)
 }

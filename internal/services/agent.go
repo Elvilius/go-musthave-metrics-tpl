@@ -158,11 +158,7 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		req.Header.Set("Accept-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
 		if s.cfg.Key != "" {
-			dataHash, err := hashing.GenerateHash(s.cfg.Key, body)
-			if err != nil {
-				s.logger.Errorln(err)
-				return
-			}
+			dataHash := hashing.GenerateHash(s.cfg.Key, body)
 			req.Header.Set("HashSHA256", dataHash)
 		}
 
