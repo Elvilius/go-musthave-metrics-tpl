@@ -15,7 +15,6 @@ func generateRandom(size int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return b, nil
 }
 
@@ -39,7 +38,6 @@ func GenerateHash(key string, data []byte) (string, error) {
 	dst := aesgcm.Seal(nonce, nonce, data, nil)
 	encryptedStr := fmt.Sprintf("%x", dst)
 	return encryptedStr, nil
-
 }
 
 func VerifyHash(key string, data []byte, encryptedHash string) (bool, error) {
@@ -64,11 +62,10 @@ func VerifyHash(key string, data []byte, encryptedHash string) (bool, error) {
 	encryptedData := encryptedHashBytes[nonceSize:]
 
 	decryptedData, err := aesgcm.Open(nil, nonce, encryptedData, nil)
-
 	if err != nil {
 		return false, err
 	}
-	return compareSlices(encryptedData, decryptedData), nil
+	return compareSlices(decryptedData, data), nil
 }
 
 func compareSlices(a, b []byte) bool {
@@ -81,6 +78,5 @@ func compareSlices(a, b []byte) bool {
 			return false
 		}
 	}
-
 	return true
 }

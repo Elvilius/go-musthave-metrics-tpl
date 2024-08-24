@@ -1,17 +1,25 @@
 package hashing
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateHash(t *testing.T) {
-
-	data := []byte("zalupa")
-	hash, _ := GenerateHash("secret", data)
-	fmt.Println(hash)
-	ok, _ := VerifyHash("secret", data, hash)
+func TestHashingTrue(t *testing.T) {
+	data := []byte("test data")
+	hash, err := GenerateHash("secret", data)
+	assert.NoError(t, err)
+	ok, err := VerifyHash("secret", data, hash)
+	assert.NoError(t, err)
 	assert.True(t, ok)
+}
+
+func TestHashingFalse(t *testing.T) {
+	data := []byte("test data")
+	hash, err := GenerateHash("secret", data)
+	assert.NoError(t, err)
+	ok, err := VerifyHash("secrets", data, hash)
+	assert.Error(t, err)
+	assert.False(t, ok)
 }

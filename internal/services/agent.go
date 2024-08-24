@@ -12,6 +12,7 @@ import (
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"go.uber.org/zap"
 )
 
@@ -146,7 +147,7 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 
 	client := http.Client{}
 
-	for _, delay := range []time.Duration{time.Second, 2*time.Second, 3*time.Second} {
+	for _, delay := range []time.Duration{time.Second, 2 * time.Second, 3 * time.Second} {
 		req, err := http.NewRequest("POST", url, &buf)
 		if err != nil {
 			s.logger.Errorln(err)
@@ -156,6 +157,14 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		req.Header.Set("Content-Encoding", "gzip")
 		req.Header.Set("Accept-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
+		if s.cfg.Key != "" {
+			dataHash, err := hashing.GenerateHash(s.cfg.Key, body)
+			if err != nil {
+				s.logger.Errorln(err)
+				return
+			}
+			req.Header.Set("HashSHA256", dataHash)
+		}
 
 		res, err := client.Do(req)
 		if err == nil && res.StatusCode == http.StatusOK {
