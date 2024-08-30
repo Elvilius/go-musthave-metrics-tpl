@@ -265,11 +265,11 @@ func (m *OtherSysMetric) Update() {
 	m.metric = &Metrics{ID: "OtherSys", MType: Gauge, Value: &otherSys}
 }
 
-func (s *PauseTotalNsMetric) Update() {
+func (m *PauseTotalNsMetric) Update() {
 	runtime.ReadMemStats(&memStats)
 
 	pauseTotalNs := float64(memStats.PauseTotalNs)
-	s.metric = &Metrics{ID: "PauseTotalNs", MType: Gauge, Value: &pauseTotalNs}
+	m.metric = &Metrics{ID: "PauseTotalNs", MType: Gauge, Value: &pauseTotalNs}
 }
 
 func (m *StackInuseMetric) Update() {
@@ -461,4 +461,3 @@ func (m *FreeMemoryMetric) Get() Metrics {
 func (m *CPUutilization1Metric) Get() Metrics {
 	return *m.metric
 }
-
