@@ -16,7 +16,11 @@ type MemStorage struct {
 }
 
 func NewMemStorage(cfg *config.ServerConfig) handler.Storager {
-	return &MemStorage{metrics: make(map[string]models.Metrics), cfg: cfg, rw: sync.RWMutex{}}
+	return &MemStorage{
+		metrics: make(map[string]models.Metrics),
+		cfg:     cfg,
+		rw:      sync.RWMutex{},
+	}
 }
 
 func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
@@ -26,34 +30,35 @@ func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
 	if delta == nil {
 		delta = &defaultDelta
 	}
-	existMetric, ok, err := m.Get(ctx, mType, ID)
-	if err != nil {
-		return err
-	}
+
+	m.rw.Lock()
+	defer m.rw.Unlock()
+
+	existMetric, ok := m.metrics[ID]
 
 	if mType == models.Gauge {
-		m.rw.Lock()
-		defer m.rw.Unlock()
 		m.metrics[ID] = models.Metrics{ID: ID, MType: mType, Value: value}
 		return nil
-
 	}
+
 	if mType == models.Counter {
-		m.rw.Lock()
-		defer m.rw.Unlock()
 		if !ok {
 			m.metrics[ID] = models.Metrics{ID: ID, MType: mType, Delta: delta}
-			return nil
 		} else {
-			delta := *existMetric.Delta + *delta
-			existMetric.Delta = &delta
+			newDelta := *existMetric.Delta + *delta
+			existMetric.Delta = &newDelta
 			m.metrics[ID] = existMetric
 		}
+		return nil
 	}
+
 	return nil
 }
 
 func (m *MemStorage) Get(ctx context.Context, mType, ID string) (models.Metrics, bool, error) {
+	m.rw.RLock()
+	defer m.rw.RUnlock()
+
 	metric, ok := m.metrics[ID]
 	if !ok {
 		return models.Metrics{}, false, nil
@@ -66,9 +71,12 @@ func (m *MemStorage) Get(ctx context.Context, mType, ID string) (models.Metrics,
 }
 
 func (m *MemStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
+	m.rw.RLock()
+	defer m.rw.RUnlock()
+
 	all := make([]models.Metrics, 0, len(m.metrics))
-	for _, m := range m.metrics {
-		all = append(all, m)
+	for _, metric := range m.metrics {
+		all = append(all, metric)
 	}
 	return all, nil
 }
