@@ -12,6 +12,7 @@ import (
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"go.uber.org/zap"
 )
 
@@ -128,34 +129,37 @@ func (s *Agent) SendMetricByHTTP(metric models.Metrics) {
 		s.logger.Errorln(err)
 		return
 	}
-
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-
-	_, err = gz.Write(body)
-	if err != nil {
-		s.logger.Errorln(err)
-		return
-	}
-
-	err = gz.Close()
-	if err != nil {
-		s.logger.Errorln(err)
-		return
-	}
-
 	client := http.Client{}
+	for _, delay := range []time.Duration{time.Second, 2 * time.Second, 3 * time.Second} {
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
 
-	for _, delay := range []time.Duration{time.Second, 2*time.Second, 3*time.Second} {
+		_, err := gz.Write(body)
+		if err != nil {
+			s.logger.Errorln("Error writing to gzip writer:", err)
+			return
+		}
+
+		err = gz.Close()
+		if err != nil {
+			s.logger.Errorln("Error closing gzip writer:", err)
+			return
+		}
+
 		req, err := http.NewRequest("POST", url, &buf)
 		if err != nil {
-			s.logger.Errorln(err)
+			s.logger.Errorln("Error creating request:", err)
 			return
 		}
 
 		req.Header.Set("Content-Encoding", "gzip")
 		req.Header.Set("Accept-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
+		if s.cfg.Key != "" {
+			dataHash := hashing.GenerateHash(s.cfg.Key, body)
+			fmt.Println(dataHash, s.cfg.Key)
+			req.Header.Set("HashSHA256", dataHash)
+		}
 
 		res, err := client.Do(req)
 		if err == nil && res.StatusCode == http.StatusOK {

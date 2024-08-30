@@ -11,6 +11,7 @@ type AgentConfig struct {
 	ServerAddress  string
 	PollInterval   int
 	ReportInterval int
+	Key            string
 }
 
 type ServerConfig struct {
@@ -19,6 +20,7 @@ type ServerConfig struct {
 	FileStoragePath string
 	Restore         bool
 	DatabaseDsn     string
+	Key             string
 }
 
 func getEnvOrDefaultString(envVar string, defaultValue string) string {
@@ -51,20 +53,24 @@ func NewAgent() *AgentConfig {
 		ServerAddress:  getEnvOrDefaultString("ADDRESS", "localhost:8080"),
 		PollInterval:   getEnvOrDefaultInt("POLL_INTERVAL", 3),
 		ReportInterval: getEnvOrDefaultInt("REPORT_INTERVAL", 10),
+		Key:            getEnvOrDefaultString("KEY", ""),
 	}
 
 	pollInterval := flag.Int("p", cfg.PollInterval, "pollInterval")
 	reportInterval := flag.Int("r", cfg.ReportInterval, "reportInterval")
 	serverAddress := flag.String("a", cfg.ServerAddress, "server address")
+	secretKey := flag.String("k", cfg.Key, "secret key")
 	flag.Parse()
 
 	cfg.PollInterval = *pollInterval
 	cfg.ReportInterval = *reportInterval
 	cfg.ServerAddress = *serverAddress
+	cfg.Key = *secretKey
 
 	fmt.Println("Server Address:", cfg.ServerAddress)
 	fmt.Println("Report Interval:", cfg.ReportInterval)
 	fmt.Println("Poll Interval:", cfg.PollInterval)
+	fmt.Println("Secret Key:", cfg.Key)
 
 	return cfg
 }
@@ -76,6 +82,7 @@ func NewServer() *ServerConfig {
 		FileStoragePath: getEnvOrDefaultString("FILE_STORAGE_PATH", "/tmp/metrics-db.json"),
 		Restore:         getEnvOrDefaultBool("RESTORE", true),
 		DatabaseDsn:     getEnvOrDefaultString("DATABASE_DSN", ""),
+		Key:             getEnvOrDefaultString("KEY", ""),
 	}
 
 	serverAddress := flag.String("a", cfg.Address, "server address")
@@ -83,6 +90,8 @@ func NewServer() *ServerConfig {
 	fileStoragePath := flag.String("f", cfg.FileStoragePath, "file storage path")
 	restore := flag.Bool("r", cfg.Restore, "restore")
 	databaseDsn := flag.String("d", cfg.DatabaseDsn, "database dsn")
+	secretKey := flag.String("k", cfg.Key, "secret key")
+
 	flag.Parse()
 
 	cfg.Address = *serverAddress
@@ -90,12 +99,14 @@ func NewServer() *ServerConfig {
 	cfg.FileStoragePath = *fileStoragePath
 	cfg.Restore = *restore
 	cfg.DatabaseDsn = *databaseDsn
+	cfg.Key = *secretKey
 
 	fmt.Println("Server Address:", cfg.Address)
 	fmt.Println("Store Interval:", cfg.StoreInterval)
 	fmt.Println("File Storage Path:", cfg.FileStoragePath)
 	fmt.Println("Restore:", cfg.Restore)
 	fmt.Println("Database Dsn", cfg.DatabaseDsn)
+	fmt.Println("Secret Key:", cfg.Key)
 
 	return cfg
 }
