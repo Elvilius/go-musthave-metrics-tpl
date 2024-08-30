@@ -91,6 +91,7 @@ func Gzip(h http.Handler) http.Handler {
 		h.ServeHTTP(ow, r)
 	})
 }
+
 func VerifyHash(cfg *config.ServerConfig, logger zap.SugaredLogger, next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		data, err := io.ReadAll(r.Body)

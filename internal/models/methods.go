@@ -2,10 +2,11 @@ package models
 
 import (
 	"fmt"
-	"github.com/shirou/gopsutil/v4/cpu"
 	"math/rand/v2"
 	"runtime"
 	"sync/atomic"
+
+	"github.com/shirou/gopsutil/v4/cpu"
 
 	"github.com/shirou/gopsutil/v4/mem"
 )
@@ -16,96 +17,127 @@ var memStats runtime.MemStats
 func NewAllocMetric() *AllocMetric {
 	return &AllocMetric{metric: &Metrics{ID: "Alloc", MType: Gauge}}
 }
+
 func NewBuckHashSysMetric() *BuckHashSysMetric {
 	return &BuckHashSysMetric{metric: &Metrics{ID: "BuckHashSys", MType: Gauge}}
 }
+
 func NewFreesMetric() *FreesMetric {
 	return &FreesMetric{metric: &Metrics{ID: "Frees", MType: Gauge}}
 }
+
 func NewGCCPUFractionMetric() *GCCPUFractionMetric {
 	return &GCCPUFractionMetric{metric: &Metrics{ID: "GCCPUFraction", MType: Gauge}}
 }
+
 func NewGCSysMetric() *GCSysMetric {
 	return &GCSysMetric{metric: &Metrics{ID: "GCSys", MType: Gauge}}
 }
+
 func NewHeapAllocMetric() *HeapAllocMetric {
 	return &HeapAllocMetric{metric: &Metrics{ID: "HeapAlloc", MType: Gauge}}
 }
+
 func NewHeapIdleMetric() *HeapIdleMetric {
 	return &HeapIdleMetric{metric: &Metrics{ID: "HeapIdle", MType: Gauge}}
 }
+
 func NewHeapInuseMetric() *HeapInuseMetric {
 	return &HeapInuseMetric{metric: &Metrics{ID: "HeapInuse", MType: Gauge}}
 }
+
 func NewMCacheSys() *MCacheSysMetric {
 	return &MCacheSysMetric{metric: &Metrics{ID: "MCacheSys", MType: Gauge}}
 }
+
 func NewHeapObjectsMetric() *HeapObjectsMetric {
 	return &HeapObjectsMetric{metric: &Metrics{ID: "HeapObjects", MType: Gauge}}
 }
+
 func NewHeapReleasedMetric() *HeapReleasedMetric {
 	return &HeapReleasedMetric{metric: &Metrics{ID: "HeapReleased", MType: Gauge}}
 }
+
 func NewHeapSysMetric() *HeapSysMetric {
 	return &HeapSysMetric{metric: &Metrics{ID: "HeapSys", MType: Gauge}}
 }
+
 func NewLastGCMetric() *LastGCMetric {
 	return &LastGCMetric{metric: &Metrics{ID: "LastGC", MType: Gauge}}
 }
+
 func NewLookupsMetric() *LookupsMetric {
 	return &LookupsMetric{metric: &Metrics{ID: "Lookups", MType: Gauge}}
 }
+
 func NewMCacheInuseMetric() *MCacheInuseMetric {
 	return &MCacheInuseMetric{metric: &Metrics{ID: "MCacheInuse", MType: Gauge}}
 }
+
 func NewMSpanSysMetric() *MSpanSysMetric {
 	return &MSpanSysMetric{metric: &Metrics{ID: "MSpanSys", MType: Gauge}}
 }
+
 func NewMallocsMetric() *MallocsMetric {
 	return &MallocsMetric{metric: &Metrics{ID: "Mallocs", MType: Gauge}}
 }
+
 func NewNextGCMetric() *NextGCMetric {
 	return &NextGCMetric{metric: &Metrics{ID: "NextGC", MType: Gauge}}
 }
+
 func NewNumForcedGC() *NumForcedGCMetric {
 	return &NumForcedGCMetric{metric: &Metrics{ID: "NumForcedGC", MType: Gauge}}
 }
+
 func NewNumGCMetric() *NumGCMetric {
 	return &NumGCMetric{metric: &Metrics{ID: "NumGC", MType: Gauge}}
 }
+
 func NewOtherSysMetric() *OtherSysMetric {
 	return &OtherSysMetric{metric: &Metrics{ID: "OtherSys", MType: Gauge}}
 }
+
 func NewPauseTotalNsMetric() *PauseTotalNsMetric {
 	return &PauseTotalNsMetric{metric: &Metrics{ID: "PauseTotalNs", MType: Gauge}}
 }
+
 func NewStackInuseMetric() *StackInuseMetric {
 	return &StackInuseMetric{metric: &Metrics{ID: "StackInuse", MType: Gauge}}
 }
+
 func NewStackSysMetric() *StackSysMetric {
 	return &StackSysMetric{metric: &Metrics{ID: "StackSys", MType: Gauge}}
 }
+
 func NewTotalAlloc() *TotalAllocMetric {
 	return &TotalAllocMetric{metric: &Metrics{ID: "TotalAlloc", MType: Gauge}}
 }
+
 func NewSysMetric() *SysMetric {
 	return &SysMetric{metric: &Metrics{ID: "Sys", MType: Gauge}}
 }
+
 func NewMSpanInuseMetric() *MSpanInuseMetric {
 	return &MSpanInuseMetric{metric: &Metrics{ID: "MSpanInuse", MType: Gauge}}
 }
+
 func NewRandomValueMetric() *RandomValueMetric {
 	return &RandomValueMetric{metric: &Metrics{ID: "RandomValue", MType: Gauge}}
 }
+
 func NewPollCountMetric() *PollCountMetric {
 	return &PollCountMetric{metric: &Metrics{ID: "PollCount", MType: Counter}}
 }
+
 func NewTotalMemoryMetric() *TotalMemoryMetric {
 	return &TotalMemoryMetric{metric: &Metrics{ID: "TotalMemory", MType: Counter}}
 }
+
 func NewFreeMemoryMetric() *FreeMemoryMetric {
 	return &FreeMemoryMetric{metric: &Metrics{ID: "FreeMemory", MType: Counter}}
 }
+
 func NewCPUutilization1Metric() *CPUutilization1Metric {
 	return &CPUutilization1Metric{metric: &Metrics{ID: "CPUutilization1Metric", MType: Counter}}
 }
@@ -306,7 +338,6 @@ func (m *RandomValueMetric) Update() {
 }
 
 func (m *PollCountMetric) Update() {
-
 	fmt.Println(m.count)
 	atomic.AddInt64(&m.count, 1)
 
@@ -314,7 +345,6 @@ func (m *PollCountMetric) Update() {
 }
 
 func (m *TotalMemoryMetric) Update() {
-
 	v, _ := mem.VirtualMemory()
 	totalMemory := float64(v.Total)
 	m.metric = &Metrics{ID: "TotalMemory", MType: Gauge, Value: &totalMemory}
@@ -332,8 +362,7 @@ func (m *CPUutilization1Metric) Update() {
 	m.metric = &Metrics{ID: "CPUutilization1", MType: Gauge, Value: &percentages}
 }
 
-//Get metrics
-
+// Get metrics
 func (m *AllocMetric) Get() Metrics {
 	return *m.metric
 }

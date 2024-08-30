@@ -140,7 +140,6 @@ func (s *Agent) SendMetricsByHTTP() {
 }
 
 func (s *Agent) Worker(id int, jobs <-chan models.Metrics) {
-
 	for metric := range jobs {
 		s.logger.Infoln(fmt.Sprintf("Worker %d processing metric", id))
 		s.SendMetricByHTTP(metric)
