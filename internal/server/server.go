@@ -35,7 +35,6 @@ func New(cfg *config.ServerConfig, handler *handler.Handler, logger *zap.Sugared
 	router.Get("/value/{type}/{id}", server.handler.Value)
 	router.Post("/value/", server.handler.ValueJSON)
 	router.Post("/updates/", middleware.VerifyHash(cfg, *logger, http.HandlerFunc(server.handler.UpdatesJSON)))
-
 	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 
