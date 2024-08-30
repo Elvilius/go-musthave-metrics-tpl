@@ -12,6 +12,7 @@ type AgentConfig struct {
 	PollInterval   int
 	ReportInterval int
 	Key            string
+	RateLimit      int
 }
 
 type ServerConfig struct {
@@ -54,24 +55,27 @@ func NewAgent() *AgentConfig {
 		PollInterval:   getEnvOrDefaultInt("POLL_INTERVAL", 3),
 		ReportInterval: getEnvOrDefaultInt("REPORT_INTERVAL", 10),
 		Key:            getEnvOrDefaultString("KEY", ""),
+		RateLimit:      getEnvOrDefaultInt("RATE_LIMIT", 3),
 	}
 
 	pollInterval := flag.Int("p", cfg.PollInterval, "pollInterval")
 	reportInterval := flag.Int("r", cfg.ReportInterval, "reportInterval")
 	serverAddress := flag.String("a", cfg.ServerAddress, "server address")
 	secretKey := flag.String("k", cfg.Key, "secret key")
+	rateLimit := flag.Int("l", cfg.RateLimit, "rate limit")
 	flag.Parse()
 
 	cfg.PollInterval = *pollInterval
 	cfg.ReportInterval = *reportInterval
 	cfg.ServerAddress = *serverAddress
 	cfg.Key = *secretKey
+	cfg.RateLimit = *rateLimit
 
 	fmt.Println("Server Address:", cfg.ServerAddress)
 	fmt.Println("Report Interval:", cfg.ReportInterval)
 	fmt.Println("Poll Interval:", cfg.PollInterval)
 	fmt.Println("Secret Key:", cfg.Key)
-
+	fmt.Println("Rate limit:", cfg.RateLimit)
 	return cfg
 }
 
