@@ -120,6 +120,8 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
+
 	w.Header().Set("Content-Type", "application/json")
 
 	var responseMetric models.Metrics
@@ -223,6 +225,7 @@ func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
 	w.Header().Set("Content-Type", "application/json")
 
 	errUpdate := h.storage.Updates(ctx, requestMetrics)
