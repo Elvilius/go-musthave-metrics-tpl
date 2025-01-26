@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sync"
 	"time"
 
 	collector "github.com/Elvilius/go-musthave-metrics-tpl/internal/collector"
@@ -40,23 +41,36 @@ func New() *AppAgent {
 }
 
 func (app *AppAgent) Run(ctx context.Context) {
-	var metrics map[string]models.Metrics
+	wg := sync.WaitGroup{}
+	metrics := make(chan map[string]models.Metrics)
+	tickerCollect := time.NewTicker(time.Duration(app.cfg.PollInterval) * time.Second)
+	tickerSend := time.NewTicker(time.Duration(app.cfg.ReportInterval) * time.Second)
 
-	go func() {
-		for range time.Tick(time.Duration(app.cfg.PollInterval) * time.Second) {
-			metrics = app.collector.GetMetric()
-		}
-	}()
+	wg.
+	select {
+	case <-ctx.Done():
+		return
 
-	for range time.Tick(time.Duration(app.cfg.ReportInterval) * time.Second) {
-		for _, m := range metrics {
-			body, err := json.Marshal(m)
-
-			if err != nil {
-				app.logger.Fatal(err)
+	default:
+		go func() {
+			for range tickerCollect.C {
+				metrics <- app.collector.GetMetric()
 			}
-			app.api.Fetch(ctx, http.MethodPost, "/update", body)
-			metrics = nil
-		}
+		}()
+
+		go func() {
+			for range tickerSend.C {
+				for metric := range metrics {
+					body, err := json.Marshal(metric)
+
+					if err != nil {
+						app.logger.Fatal(err)
+					}
+					app.api.Fetch(ctx, http.MethodPost, "/update", body)
+					metrics = nil
+				}
+			}
+		}()
 	}
+
 }
