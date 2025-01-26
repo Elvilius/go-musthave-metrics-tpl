@@ -1,5 +1,12 @@
 package models
 
+import "encoding/json"
+
+const (
+	Gauge   = "gauge"
+	Counter = "counter"
+)
+
 type Metrics struct {
 	ID    string   `json:"id"`
 	MType string   `json:"type"`
@@ -7,7 +14,10 @@ type Metrics struct {
 	Value *float64 `json:"value,omitempty"`
 }
 
-const (
-	Gauge   = "gauge"
-	Counter = "counter"
-)
+func (m *Metrics) MarshalValue() ([]byte, error) {
+	if m.MType == Counter {
+		return json.Marshal(m.Delta)
+	} else {
+		return json.Marshal(m.Value)
+	}
+}

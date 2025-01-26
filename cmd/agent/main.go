@@ -1,17 +1,17 @@
 package main
 
 import (
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/services"
-	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
+	"context"
+	"os/signal"
+	"syscall"
+
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/app/agent"
 )
 
 func main() {
-	logger, err := logger.New()
-	if err != nil {
-		panic(err)
-	}
-	cfg := config.NewAgent()
-	agent := services.NewAgentMetricService(cfg, logger)
-	agent.Run()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	agent := agent.New()
+	agent.Run(ctx)
 }

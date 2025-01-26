@@ -7,16 +7,16 @@ import (
 	"path/filepath"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
-	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
 
 type FileStorage struct {
 	cfg     *config.ServerConfig
-	storage handler.Storager
+	storage metrics.Storager
 }
 
-func NewFileStorage(cfg *config.ServerConfig, storage handler.Storager) *FileStorage {
+func NewFileStorage(cfg *config.ServerConfig, storage metrics.Storager) *FileStorage {
 	return &FileStorage{cfg: cfg, storage: storage}
 }
 

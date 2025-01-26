@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
 
@@ -13,7 +13,7 @@ type DBStorage struct {
 	DB *sql.DB
 }
 
-func NewDBStorage(db *sql.DB) handler.Storager {
+func NewDBStorage(db *sql.DB) metrics.Storager {
 	return &DBStorage{DB: db}
 }
 

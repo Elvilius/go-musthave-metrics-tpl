@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
-	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
 
@@ -15,7 +15,7 @@ type MemStorage struct {
 	rw      sync.RWMutex
 }
 
-func NewMemStorage(cfg *config.ServerConfig) handler.Storager {
+func NewMemStorage(cfg *config.ServerConfig) metrics.Storager {
 	return &MemStorage{metrics: make(map[string]models.Metrics), cfg: cfg, rw: sync.RWMutex{}}
 }
 

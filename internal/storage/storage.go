@@ -3,33 +3,69 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
-	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 )
 
-func New(ctx context.Context, cfg *config.ServerConfig, db *sql.DB, logger *zap.SugaredLogger) handler.Storager {
-	if cfg.DatabaseDsn == "" {
-		memStorage := NewMemStorage(cfg)
-		fs := NewFileStorage(cfg, memStorage)
-		go runFile(ctx, cfg, fs, logger)
-		return memStorage
-	}
+type storageType string
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
-	if err := goose.UpContext(ctx, db, "./internal/storage/migrations"); err != nil {
-		logger.Fatalw("Failed to run migrations", "error", err)
-	}
-	return NewDBStorage(db)
+const memType storageType = "1"
+const dbType storageType = "2"
+
+type Store struct {
+	Storage metrics.Storager
+	sType   storageType
+	cfg     *config.ServerConfig
+	db      *sql.DB
+	logger  *zap.SugaredLogger
 }
 
-func runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogger) {
+func New(cfg *config.ServerConfig, logger *zap.SugaredLogger, db *sql.DB) *Store {
+	s := &Store{db: db, cfg: cfg, logger: logger}
+	if cfg.DatabaseDsn == "" {
+		s.sType = memType
+		s.Storage = NewMemStorage(cfg)
+	} else {
+		s.sType = dbType
+		s.Storage = NewDBStorage(db)
+	}
+	return s
+}
+
+func (s *Store) Run(ctx context.Context) {
+
+	switch s.sType {
+	case memType:
+		fs := NewFileStorage(s.cfg, s.Storage)
+		go s.runFile(ctx, s.cfg, fs, s.logger)
+	case dbType:
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+		if err := goose.UpContext(ctx, s.db, "./internal/storage/migrations"); err != nil {
+			s.logger.Fatalw("Failed to run migrations", "error", err)
+		}
+
+	default:
+		s.logger.Fatalw("Unknown store type")
+	}
+}
+
+func (s *Store) Ping() error {
+	if s.db == nil {
+		return errors.New("DB not found")
+	}
+
+	return s.db.Ping()
+}
+
+func (s *Store) runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileStorage, logger *zap.SugaredLogger) {
 	ticker := time.NewTicker(time.Duration(cfg.StoreInterval) * time.Second)
 	defer ticker.Stop()
 
@@ -63,4 +99,8 @@ func runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileStorage, log
 			return
 		}
 	}
+}
+
+func (s *Store) GetStorage() metrics.Storager {
+	return s.Storage
 }
