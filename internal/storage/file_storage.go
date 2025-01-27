@@ -27,8 +27,9 @@ func (f *FileStorage) SaveToFile() error {
 		return err
 	}
 	path := filepath.Join(wd, f.cfg.FileStoragePath)
+	tempPath := path + ".tmp"
 
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	file, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
@@ -53,9 +54,13 @@ func (f *FileStorage) SaveToFile() error {
 		return fmt.Errorf("failed to close temp file: %w", err)
 	}
 
+	err = os.Rename(tempPath, path)
+	if err != nil {
+		return fmt.Errorf("failed to rename temp file: %w", err)
+	}
+
 	return nil
 }
-
 func (f *FileStorage) LoadFromFile() error {
 	if f.cfg.FileStoragePath == "" || !f.cfg.Restore {
 		return nil
