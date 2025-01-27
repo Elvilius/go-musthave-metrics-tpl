@@ -56,8 +56,11 @@ func New() *AppServer {
 }
 
 func (a *AppServer) registerRoute() {
-	a.router.Use(middleware.Logging(a.logger))
+	m := middleware.New(a.cfg, a.logger)
+
+	a.router.Use(m.Logging)
 	a.router.Use(middleware.Gzip)
+	a.router.Use(m.VerifyHash)
 
 	a.router.Get("/", a.handler.All)
 	a.router.Post("/update/{type}/{id}/{value}", a.handler.Update)
@@ -79,7 +82,6 @@ func (a *AppServer) registerRoute() {
 }
 
 func (a *AppServer) Run(ctx context.Context) {
-
 	a.registerRoute()
 	a.store.Run(ctx)
 

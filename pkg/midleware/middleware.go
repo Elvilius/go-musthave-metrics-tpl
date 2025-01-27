@@ -25,31 +25,41 @@ type (
 	}
 )
 
-func Logging(logger *zap.SugaredLogger) func(http.Handler) http.Handler {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
+type Middleware struct {
+	cfg    *config.ServerConfig
+	logger *zap.SugaredLogger
+}
 
-			responseData := &responseData{size: 0, status: 0}
-
-			lw := &loggingResponseWriter{
-				ResponseWriter: w,
-				responseData:   responseData,
-			}
-
-			h.ServeHTTP(lw, r)
-
-			duration := time.Since(start)
-
-			logger.Infoln(
-				"uri", r.RequestURI,
-				"method", r.Method,
-				"status", lw.responseData.status,
-				"duration", duration,
-				"size", lw.responseData.size,
-			)
-		})
+func New(cfg *config.ServerConfig, logger *zap.SugaredLogger) *Middleware {
+	return &Middleware{
+		cfg:    cfg,
+		logger: logger,
 	}
+}
+
+func (m *Middleware) Logging(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		responseData := &responseData{size: 0, status: 0}
+
+		lw := &loggingResponseWriter{
+			ResponseWriter: w,
+			responseData:   responseData,
+		}
+
+		h.ServeHTTP(lw, r)
+
+		duration := time.Since(start)
+
+		m.logger.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"status", lw.responseData.status,
+			"duration", duration,
+			"size", lw.responseData.size,
+		)
+	})
 }
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
@@ -92,21 +102,24 @@ func Gzip(h http.Handler) http.Handler {
 	})
 }
 
-func VerifyHash(cfg *config.ServerConfig, logger zap.SugaredLogger, next http.Handler) http.HandlerFunc {
+func (m *Middleware) VerifyHash(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ow := w
+
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		if cfg.Key != "" {
-			if ok := hashing.VerifyHash(cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
+		if m.cfg.Key != "" {
+			if ok := hashing.VerifyHash(m.cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 		}
 		r.Body = io.NopCloser(bytes.NewBuffer(data))
-		next.ServeHTTP(w, r)
+		h.ServeHTTP(ow, r)
+
 	})
 }

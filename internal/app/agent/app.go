@@ -14,6 +14,7 @@ import (
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/api"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -44,6 +45,7 @@ func New() *AppAgent {
 }
 
 func (app *AppAgent) Worker(ctx context.Context, id int, jobs <-chan models.Metrics, wg *sync.WaitGroup) {
+	headers := make(map[string]string)
 	defer wg.Done()
 	for metric := range jobs {
 		app.logger.Infof("Worker %d processing metric", id)
@@ -52,9 +54,11 @@ func (app *AppAgent) Worker(ctx context.Context, id int, jobs <-chan models.Metr
 			app.logger.Error(err)
 			continue
 		}
-		app.api.Fetch(ctx, http.MethodPost, "/update", body)
+		if app.cfg.Key != "" {
+			headers["HashSHA256"] = hashing.GenerateHash(app.cfg.Key, body)
+		}
+		app.api.Fetch(ctx, http.MethodPost, "/update", body, headers)
 	}
-
 }
 
 func (app *AppAgent) Run(ctx context.Context) {
