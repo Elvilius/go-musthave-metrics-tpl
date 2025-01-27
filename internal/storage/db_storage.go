@@ -109,6 +109,6 @@ func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) erro
 	if errCommit != nil {
 		tx.Rollback()
 		return errCommit
-	} 
+	}
 	return nil
 }

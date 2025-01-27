@@ -2,7 +2,7 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -40,37 +40,47 @@ func New() *AppAgent {
 	}
 }
 
-func (app *AppAgent) Run(ctx context.Context) {
-	wg := sync.WaitGroup{}
-	metrics := make(chan map[string]models.Metrics)
-	tickerCollect := time.NewTicker(time.Duration(app.cfg.PollInterval) * time.Second)
-	tickerSend := time.NewTicker(time.Duration(app.cfg.ReportInterval) * time.Second)
-
-	wg.
-	select {
-	case <-ctx.Done():
-		return
-
-	default:
-		go func() {
-			for range tickerCollect.C {
-				metrics <- app.collector.GetMetric()
-			}
-		}()
-
-		go func() {
-			for range tickerSend.C {
-				for metric := range metrics {
-					body, err := json.Marshal(metric)
-
-					if err != nil {
-						app.logger.Fatal(err)
-					}
-					app.api.Fetch(ctx, http.MethodPost, "/update", body)
-					metrics = nil
-				}
-			}
-		}()
+func (app *AppAgent) Worker(ctx context.Context, id int, jobs <-chan models.Metrics, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for metric := range jobs {
+		app.logger.Infoln(fmt.Sprintf("Worker %d processing metric", id))
+		body, err := metric.MarshalMetric()
+		if err != nil {
+			app.logger.Fatal(err)
+		}
+		app.api.Fetch(ctx, http.MethodPost, "/update", body)
 	}
+}
 
+func (app *AppAgent) Run(ctx context.Context) {
+	collectTicker := time.NewTicker(time.Duration(app.cfg.PollInterval) * time.Second)
+	sendTicker := time.NewTicker(time.Duration(app.cfg.ReportInterval) * time.Second)
+
+	jobs := make(chan models.Metrics)
+	wg := &sync.WaitGroup{}
+
+	for {
+		select {
+		case <-ctx.Done():
+			collectTicker.Stop()
+			sendTicker.Stop()
+			wg.Wait()
+			close(jobs)
+			return
+		case <-collectTicker.C:
+			go func() {
+				app.collector.CollectMetric()
+				metrics := app.collector.GetMetrics()
+
+				for _, m := range metrics {
+					jobs <- m
+				}
+			}()
+		case <-sendTicker.C:
+			for i := 1; i <= app.cfg.RateLimit; i++ {
+				wg.Add(1)
+				go app.Worker(ctx, i, jobs, wg)
+			}
+		}
+	}
 }
