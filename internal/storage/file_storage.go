@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -24,14 +25,13 @@ func NewFileStorage(cfg *config.ServerConfig, storage metrics.Storager) *FileSto
 func (f *FileStorage) SaveToFile() error {
 	wd, err := os.Getwd()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 	path := filepath.Join(wd, f.cfg.FileStoragePath)
-	tempPath := path + ".tmp"
 
-	file, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
+		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 
@@ -45,22 +45,23 @@ func (f *FileStorage) SaveToFile() error {
 		return fmt.Errorf("failed to marshal metrics: %w", err)
 	}
 
-	_, err = file.Write(bytes)
+	writer := bufio.NewWriter(file)
+	_, err = writer.Write(bytes)
 	if err != nil {
-		return fmt.Errorf("failed to write to temp file: %w", err)
+		return fmt.Errorf("failed to write to file: %w", err)
 	}
 
-	if err := file.Close(); err != nil {
-		return fmt.Errorf("failed to close temp file: %w", err)
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush data to file: %w", err)
 	}
 
-	err = os.Rename(tempPath, path)
-	if err != nil {
-		return fmt.Errorf("failed to rename temp file: %w", err)
+	if err := file.Truncate(int64(len(bytes))); err != nil {
+		return fmt.Errorf("failed to truncate file: %w", err)
 	}
 
 	return nil
 }
+
 func (f *FileStorage) LoadFromFile() error {
 	if f.cfg.FileStoragePath == "" || !f.cfg.Restore {
 		return nil
