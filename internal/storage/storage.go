@@ -40,7 +40,6 @@ func New(cfg *config.ServerConfig, logger *zap.SugaredLogger, db *sql.DB) *Store
 }
 
 func (s *Store) Run(ctx context.Context) {
-
 	switch s.sType {
 	case memType:
 		fs := NewFileStorage(s.cfg, s.Storage)

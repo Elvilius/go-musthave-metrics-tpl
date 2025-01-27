@@ -26,7 +26,8 @@ func (f *FileStorage) SaveToFile() error {
 		return err
 	}
 	path := filepath.Join(wd, f.cfg.FileStoragePath)
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o644)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+
 	if err != nil {
 		return err
 	}

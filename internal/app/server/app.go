@@ -12,7 +12,7 @@ import (
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
-	middleware "github.com/Elvilius/go-musthave-metrics-tpl/pkg/midleware"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/middleware"
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
