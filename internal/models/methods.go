@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"math/rand/v2"
 	"runtime"
 	"sync/atomic"
@@ -338,7 +337,6 @@ func (m *RandomValueMetric) Update() {
 }
 
 func (m *PollCountMetric) Update() {
-	fmt.Println(m.count)
 	atomic.AddInt64(&m.count, 1)
 
 	m.metric = &Metrics{ID: "PollCount", MType: Counter, Delta: &m.count}

@@ -21,11 +21,12 @@ func New(url string, logger *zap.SugaredLogger) *API {
 	return &API{
 		url:    url,
 		client: &http.Client{},
+		logger: logger,
 	}
 }
 
 func (api *API) Fetch(ctx context.Context, method string, endpoint string, body []byte) {
-	url := fmt.Sprintf("http://%s/%s/", api.url, endpoint)
+	url := fmt.Sprintf("http://%s%s/", api.url, endpoint)
 
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)

@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	collector "github.com/Elvilius/go-musthave-metrics-tpl/internal/collector"
@@ -43,37 +46,63 @@ func New() *AppAgent {
 func (app *AppAgent) Worker(ctx context.Context, id int, jobs <-chan models.Metrics, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for metric := range jobs {
-		app.logger.Infoln(fmt.Sprintf("Worker %d processing metric", id))
+		app.logger.Infof("Worker %d processing metric", id)
 		body, err := metric.MarshalMetric()
 		if err != nil {
-			app.logger.Fatal(err)
+			app.logger.Error(err)
+			continue
 		}
 		app.api.Fetch(ctx, http.MethodPost, "/update", body)
 	}
+
 }
 
 func (app *AppAgent) Run(ctx context.Context) {
 	collectTicker := time.NewTicker(time.Duration(app.cfg.PollInterval) * time.Second)
 	sendTicker := time.NewTicker(time.Duration(app.cfg.ReportInterval) * time.Second)
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	jobs := make(chan models.Metrics)
 	wg := &sync.WaitGroup{}
 
+	ctx, cancel := context.WithCancel(ctx)
+
+	cleanApp := func() {
+		cancel()
+		wg.Wait()
+		sendTicker.Stop()
+		collectTicker.Stop()
+		close(jobs)
+		fmt.Println("Resources cleaned up")
+	}
+
+	defer cleanApp()
+
 	for {
 		select {
 		case <-ctx.Done():
-			collectTicker.Stop()
-			sendTicker.Stop()
-			wg.Wait()
-			close(jobs)
+			fmt.Println("Context cancelled")
+			return
+		case <-stop:
+			fmt.Println("Received termination signal")
+			os.Exit(1)
 			return
 		case <-collectTicker.C:
 			go func() {
-				app.collector.CollectMetric()
-				metrics := app.collector.GetMetrics()
-
-				for _, m := range metrics {
-					jobs <- m
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					app.collector.CollectMetric()
+					metrics := app.collector.GetMetrics()
+					for _, m := range metrics {
+						select {
+						case jobs <- m:
+						case <-ctx.Done():
+							return
+						}
+					}
 				}
 			}()
 		case <-sendTicker.C:
