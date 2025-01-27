@@ -38,8 +38,6 @@ func New() *AppServer {
 	if err != nil {
 		logger.Fatalw("Failed to open DB", "error", err)
 	}
-	defer db.Close()
-
 	mainStore := storage.New(cfg, logger, db)
 	metricsService := metrics.New(mainStore.GetStorage(), logger)
 	handler := handler.NewHandler(metricsService)
@@ -85,6 +83,7 @@ func (a *AppServer) Run(ctx context.Context) {
 	a.registerRoute()
 	a.store.Run(ctx)
 
+	defer a.store.Close()
 	go func() {
 		fmt.Println("Starting server...")
 		err := http.ListenAndServe(a.cfg.Address, a.router)

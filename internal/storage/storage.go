@@ -104,3 +104,8 @@ func (s *Store) runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileS
 func (s *Store) GetStorage() metrics.Storager {
 	return s.Storage
 }
+
+
+func (s *Store)Close() {
+	s.db.Close()
+}
