@@ -110,8 +110,10 @@ func TestHandler_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
+
+		cfg := &config.ServerConfig{}
 		metricsService := metrics.New(memStorage, nil)
-		h := NewHandler(config.NewServer(), metricsService)
+		h := NewHandler(cfg, metricsService)
 		router := chi.NewRouter()
 		router.Post("/update/{type}/{id}/{value}", h.Update)
 
@@ -191,7 +193,8 @@ func TestHandler_Value(t *testing.T) {
 		return
 	}
 
-	h := NewHandler(config.NewServer(), metricService)
+	cfg := &config.ServerConfig{}
+	h := NewHandler(cfg, metricService)
 	router := chi.NewRouter()
 	router.Get("/value/{type}/{id}", h.Value)
 	for _, tt := range tests {
