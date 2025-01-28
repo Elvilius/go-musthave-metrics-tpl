@@ -60,7 +60,7 @@ func (a *AppServer) registerRoute() {
 
 	a.router.Use(m.Logging)
 	a.router.Use(middleware.Gzip)
-	a.router.Use(m.VerifyHash)
+	//a.router.Use(m.VerifyHash)
 
 	a.router.Get("/", a.handler.All)
 	a.router.Post("/update/{type}/{id}/{value}", a.handler.Update)
