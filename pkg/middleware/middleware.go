@@ -10,7 +10,7 @@ import (
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/gzip"
-	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
+	//"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"go.uber.org/zap"
 )
 
@@ -114,13 +114,13 @@ func (m *Middleware) VerifyHash(h http.Handler) http.Handler {
 		}
 
 		fmt.Println(123123123123)
-		if m.cfg.Key != "" {
-			if ok := hashing.VerifyHash(m.cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
-				fmt.Println("OKKKKKKK", ok)
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-		}
+		// if m.cfg.Key != "" {
+		// 	if ok := hashing.VerifyHash(m.cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
+		// 		fmt.Println("OKKKKKKK", ok)
+		// 		w.WriteHeader(http.StatusBadRequest)
+		// 		return
+		// 	}
+		// }
 		r.Body = io.NopCloser(bytes.NewBuffer(data))
 		h.ServeHTTP(ow, r)
 
