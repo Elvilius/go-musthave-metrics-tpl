@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
@@ -83,6 +84,7 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 
 	bytes, err := metric.MarshalValue()
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -91,6 +93,7 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 
 	_, err = w.Write(bytes)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -149,11 +152,13 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	if err != nil {
+		fmt.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
 	m, err := h.metrics.GetOne(ctx, metric.MType, metric.ID)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -164,6 +169,7 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 
 	bytes, err := json.Marshal(m)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -208,6 +214,7 @@ func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 	requestMetrics := []models.Metrics{}
 	err := json.NewDecoder(r.Body).Decode(&requestMetrics)
 	if err != nil {
+		fmt.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -215,6 +222,7 @@ func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 	errUpdate := h.metrics.Update(ctx, requestMetrics)
 
 	if errUpdate != nil {
+		fmt.Println(errUpdate)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

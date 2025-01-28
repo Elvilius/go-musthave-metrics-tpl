@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -114,6 +115,7 @@ func (m *Middleware) VerifyHash(h http.Handler) http.Handler {
 
 		if m.cfg.Key != "" {
 			if ok := hashing.VerifyHash(m.cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
+				fmt.Println("OKKKKKKK", ok)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
