@@ -54,7 +54,7 @@ func NewAgent() *AgentConfig {
 		ServerAddress:  getEnvOrDefaultString("ADDRESS", "localhost:8080"),
 		PollInterval:   getEnvOrDefaultInt("POLL_INTERVAL", 3),
 		ReportInterval: getEnvOrDefaultInt("REPORT_INTERVAL", 10),
-		Key:            getEnvOrDefaultString("KEY", "test"),
+		Key:            getEnvOrDefaultString("KEY", ""),
 		RateLimit:      getEnvOrDefaultInt("RATE_LIMIT", 3),
 	}
 
