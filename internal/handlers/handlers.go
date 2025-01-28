@@ -70,7 +70,6 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	mType := chi.URLParam(r, "type")
 	id := chi.URLParam(r, "id")
-	var err error
 
 	metric, err := h.metrics.GetOne(ctx, mType, id)
 	if err != nil {
@@ -89,6 +88,7 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.addHash(w, bytes)
+
 	_, err = w.Write(bytes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -100,43 +100,42 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	ctx := r.Context()
-	requestMetric := &models.Metrics{}
+	var requestMetric models.Metrics
 	err := json.NewDecoder(r.Body).Decode(&requestMetric)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	var responseMetric *models.Metrics
-
-	err = h.metrics.Add(ctx, *requestMetric, "")
+	err = h.metrics.Add(ctx, requestMetric, "")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "Failed to update metric", http.StatusBadRequest)
 		return
 	}
+
 	metric, err := h.metrics.GetOne(ctx, requestMetric.MType, requestMetric.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to retrieve metric", http.StatusInternalServerError)
 		return
 	}
+
+	responseMetric := metric
 	if metric == nil {
-		responseMetric = requestMetric
-	} else {
-		responseMetric = metric
+		responseMetric = &requestMetric
 	}
 
 	res, err := json.Marshal(responseMetric)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 
 	h.addHash(w, res)
+
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(res)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 	}
 }
 
@@ -230,5 +229,4 @@ func (h *Handler) addHash(w http.ResponseWriter, data []byte) {
 
 	hash := hashing.GenerateHash(h.cfg.Key, data)
 	w.Header().Set("HashSHA256", hash)
-
 }
