@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"github.com/go-chi/chi/v5"
@@ -110,7 +111,7 @@ func TestHandler_Update(t *testing.T) {
 	for _, tt := range tests {
 		memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
 		metricsService := metrics.New(memStorage, nil)
-		h := NewHandler(metricsService)
+		h := NewHandler(config.NewServer(), metricsService)
 		router := chi.NewRouter()
 		router.Post("/update/{type}/{id}/{value}", h.Update)
 
@@ -190,7 +191,7 @@ func TestHandler_Value(t *testing.T) {
 		return
 	}
 
-	h := NewHandler(metricService)
+	h := NewHandler(config.NewServer(), metricService)
 	router := chi.NewRouter()
 	router.Get("/value/{type}/{id}", h.Value)
 	for _, tt := range tests {

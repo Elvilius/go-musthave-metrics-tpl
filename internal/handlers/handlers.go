@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -17,11 +19,12 @@ type Metrics interface {
 }
 
 type Handler struct {
+	cfg     *config.ServerConfig
 	metrics Metrics
 }
 
-func NewHandler(metrics Metrics) *Handler {
-	return &Handler{metrics: metrics}
+func NewHandler(cfg *config.ServerConfig, metrics Metrics) *Handler {
+	return &Handler{metrics: metrics, cfg: cfg}
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -84,6 +87,8 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	h.addHash(w, bytes)
 	_, err = w.Write(bytes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -127,6 +132,7 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 
+	h.addHash(w, res)
 	_, err = w.Write(res)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -163,6 +169,7 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.addHash(w, bytes)
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
@@ -214,4 +221,14 @@ func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) addHash(w http.ResponseWriter, data []byte) {
+	if h.cfg.Key == "" {
+		return
+	}
+
+	hash := hashing.GenerateHash(h.cfg.Key, data)
+	w.Header().Set("HashSHA256", hash)
+
 }

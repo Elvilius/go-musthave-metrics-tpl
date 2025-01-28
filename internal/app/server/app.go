@@ -40,7 +40,7 @@ func New() *AppServer {
 	}
 	mainStore := storage.New(cfg, logger, db)
 	metricsService := metrics.New(mainStore.GetStorage(), logger)
-	handler := handler.NewHandler(metricsService)
+	handler := handler.NewHandler(cfg, metricsService)
 
 	router := chi.NewRouter()
 
