@@ -75,33 +75,31 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 
 func Gzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			w.Header().Set("Content-Encoding", "gzip")
-			w.Header().Del("Content-Length")
+		ow := w
 
-			gz := gzip.NewCompressWriter(w)
-			defer gz.Close()
+		acceptEncoding := r.Header.Get("Accept-Encoding")
+		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 
-			gzipWriter := &gzipResponseWriter{
-				ResponseWriter: w,
-				Writer:         gz,
-			}
-
-			h.ServeHTTP(gzipWriter, r)
-			return
+		if supportsGzip {
+			cw := gzip.NewCompressWriter(w)
+			ow = cw
+			defer cw.Close()
 		}
 
-		h.ServeHTTP(w, r)
+		contentEncoding := r.Header.Get("Content-Encoding")
+		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		if sendsGzip {
+			cr, err := gzip.NewCompressReader(r.Body)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			r.Body = cr
+			defer cr.Close()
+		}
+
+		h.ServeHTTP(ow, r)
 	})
-}
-
-type gzipResponseWriter struct {
-	http.ResponseWriter
-	Writer io.Writer
-}
-
-func (w *gzipResponseWriter) Write(data []byte) (int, error) {
-	return w.Writer.Write(data)
 }
 
 func (m *Middleware) VerifyHash(h http.Handler) http.Handler {
