@@ -113,6 +113,7 @@ func (m *Middleware) VerifyHash(h http.Handler) http.Handler {
 			return
 		}
 
+		fmt.Println(123123123123)
 		if m.cfg.Key != "" {
 			if ok := hashing.VerifyHash(m.cfg.Key, data, r.Header.Get("HashSHA256")); !ok {
 				fmt.Println("OKKKKKKK", ok)
