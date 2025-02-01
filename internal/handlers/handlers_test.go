@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -108,7 +110,10 @@ func TestHandler_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
-		h := NewHandler(memStorage)
+
+		cfg := &config.ServerConfig{}
+		metricsService := metrics.New(memStorage, nil)
+		h := NewHandler(cfg, metricsService)
 		router := chi.NewRouter()
 		router.Post("/update/{type}/{id}/{value}", h.Update)
 
@@ -163,6 +168,7 @@ func TestHandler_Value(t *testing.T) {
 		},
 	}
 	memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
+	metricService := metrics.New(memStorage, nil)
 
 	allocValue := 1.1
 	allocMetric := models.Metrics{
@@ -187,12 +193,70 @@ func TestHandler_Value(t *testing.T) {
 		return
 	}
 
-	h := NewHandler(memStorage)
+	cfg := &config.ServerConfig{}
+	h := NewHandler(cfg, metricService)
 	router := chi.NewRouter()
 	router.Get("/value/{type}/{id}", h.Value)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, request)
+			result := w.Result()
+			assert.Equal(t, tt.want.status, result.StatusCode)
+			result.Body.Close()
+		})
+	}
+}
+
+func TestHandler_GetAll(t *testing.T) {
+	type want struct {
+		status int
+	}
+
+	tests := []struct {
+		name    string
+		want    want
+		request string
+	}{
+		{
+			name: "positive test #1",
+			want: want{
+				status: 200,
+			},
+		},
+	}
+	memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
+	metricService := metrics.New(memStorage, nil)
+
+	allocValue := 1.1
+	var pollCountValue int64 = 100
+
+	metrics := []models.Metrics{
+		{
+			ID:    "Alloc",
+			MType: "gauge",
+			Value: &allocValue,
+		},
+		{
+			ID:    "PollCount",
+			MType: "counter",
+			Delta: &pollCountValue,
+		},
+	}
+
+	for _, m := range metrics {
+		memStorage.Save(context.TODO(), m)
+
+	}
+
+	cfg := &config.ServerConfig{}
+	h := NewHandler(cfg, metricService)
+	router := chi.NewRouter()
+	router.Get("/", h.All)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/", nil)
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, request)
 			result := w.Result()
