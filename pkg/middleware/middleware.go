@@ -2,16 +2,23 @@ package middleware
 
 import (
 	"bytes"
+	"compress/gzip"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
-	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/gzip"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"go.uber.org/zap"
 )
+
+var pool = &sync.Pool{
+	New: func() interface{} {
+		return gzip.NewWriter(&bytes.Buffer{})
+	},
+}
 
 type (
 	responseData struct {
@@ -73,37 +80,45 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	Writer io.Writer
+}
+
+func (g *gzipResponseWriter) Write(b []byte) (int, error) {
+	return g.Writer.Write(b)
+}
+
 func Gzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ow := w
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			gz := gzip.NewWriter(w)
+			defer gz.Close()
 
-		acceptEncoding := r.Header.Get("Accept-Encoding")
-		supportsGzip := strings.Contains(acceptEncoding, "gzip")
-
-		if supportsGzip {
-			cw := gzip.NewCompressWriter(w)
-			ow = cw
-			defer cw.Close()
+			w = &gzipResponseWriter{ResponseWriter: w, Writer: gz}
+			w.Header().Set("Content-Encoding", "gzip")
 		}
 
-		contentEncoding := r.Header.Get("Content-Encoding")
-		sendsGzip := strings.Contains(contentEncoding, "gzip")
-		if sendsGzip {
-			cr, err := gzip.NewCompressReader(r.Body)
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			gr, err := gzip.NewReader(r.Body)
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, "Failed to decompress request body", http.StatusInternalServerError)
 				return
 			}
-			r.Body = cr
-			defer cr.Close()
+			defer gr.Close()
+
+			bodyBytes, _ := io.ReadAll(gr)
+			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
 		}
 
-		h.ServeHTTP(ow, r)
+		h.ServeHTTP(w, r)
 	})
 }
 
 func (m *Middleware) VerifyHash(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
 		ow := w
 
 		data, err := io.ReadAll(r.Body)

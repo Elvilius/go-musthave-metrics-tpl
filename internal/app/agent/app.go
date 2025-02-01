@@ -102,7 +102,7 @@ func (app *AppAgent) Run(ctx context.Context) {
 					metrics := app.collector.GetMetrics()
 					for _, m := range metrics {
 						select {
-						case jobs <- m:
+						case jobs <- *m:
 						case <-ctx.Done():
 							return
 						}

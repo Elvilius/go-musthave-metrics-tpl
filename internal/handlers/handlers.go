@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
@@ -29,6 +30,7 @@ func NewHandler(cfg *config.ServerConfig, metrics Metrics) *Handler {
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	defer r.Body.Close()
 
 	ctx := r.Context()
 
@@ -66,6 +68,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	defer r.Body.Close()
 
 	ctx := r.Context()
 	mType := chi.URLParam(r, "type")
@@ -98,34 +101,27 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	defer r.Body.Close()
 
 	ctx := r.Context()
-	var requestMetric models.Metrics
-	err := json.NewDecoder(r.Body).Decode(&requestMetric)
+	var metric models.Metrics
+	err := json.NewDecoder(r.Body).Decode(&metric)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	err = h.metrics.Add(ctx, requestMetric, "")
+	err = h.metrics.Add(ctx, metric, "")
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Failed to update metric", http.StatusBadRequest)
 		return
 	}
 
-	metric, err := h.metrics.GetOne(ctx, requestMetric.MType, requestMetric.ID)
+	res, err := json.Marshal(metric)
 	if err != nil {
-		http.Error(w, "Failed to retrieve metric", http.StatusInternalServerError)
-		return
-	}
-
-	responseMetric := metric
-	if metric == nil {
-		responseMetric = &requestMetric
-	}
-
-	res, err := json.Marshal(responseMetric)
-	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
 		return
 	}
@@ -135,6 +131,8 @@ func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(res)
 	if err != nil {
+		fmt.Println(err)
+
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 	}
 }
@@ -203,6 +201,8 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	defer r.Body.Close()
 
 	ctx := r.Context()
 	requestMetrics := []models.Metrics{}

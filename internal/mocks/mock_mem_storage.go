@@ -1,35 +1,28 @@
-package storage
+package mocks
 
 import (
 	"context"
-	"sync"
 
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
 
-type MemStorage struct {
+type MemStorageMock struct {
 	metrics map[string]models.Metrics
-	rw      sync.RWMutex
 }
 
-func NewMemStorage() metrics.Storager {
-	return &MemStorage{
+func NewMockMemStorage() *MemStorageMock {
+	return &MemStorageMock{
 		metrics: make(map[string]models.Metrics),
-		rw:      sync.RWMutex{},
 	}
 }
 
-func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
+func (m *MemStorageMock) Save(ctx context.Context, metric models.Metrics) error {
 	mType, ID, value, delta := metric.MType, metric.ID, metric.Value, metric.Delta
 
 	var defaultDelta int64 = 0
 	if delta == nil {
 		delta = &defaultDelta
 	}
-
-	m.rw.Lock()
-	defer m.rw.Unlock()
 
 	existMetric, ok := m.metrics[ID]
 
@@ -52,10 +45,7 @@ func (m *MemStorage) Save(ctx context.Context, metric models.Metrics) error {
 	return nil
 }
 
-func (m *MemStorage) Get(ctx context.Context, mType, ID string) (models.Metrics, bool, error) {
-	m.rw.RLock()
-	defer m.rw.RUnlock()
-
+func (m *MemStorageMock) Get(ctx context.Context, mType, ID string) (models.Metrics, bool, error) {
 	metric, ok := m.metrics[ID]
 	if !ok {
 		return models.Metrics{}, false, nil
@@ -67,10 +57,7 @@ func (m *MemStorage) Get(ctx context.Context, mType, ID string) (models.Metrics,
 	return metric, true, nil
 }
 
-func (m *MemStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
-	m.rw.RLock()
-	defer m.rw.RUnlock()
-
+func (m *MemStorageMock) GetAll(ctx context.Context) ([]models.Metrics, error) {
 	all := make([]models.Metrics, 0, len(m.metrics))
 	for _, metric := range m.metrics {
 		all = append(all, metric)
@@ -78,7 +65,7 @@ func (m *MemStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
 	return all, nil
 }
 
-func (m *MemStorage) Updates(ctx context.Context, metrics []models.Metrics) error {
+func (m *MemStorageMock) Updates(ctx context.Context, metrics []models.Metrics) error {
 	for _, metric := range metrics {
 		err := m.Save(ctx, metric)
 		if err != nil {

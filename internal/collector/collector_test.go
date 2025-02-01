@@ -17,10 +17,10 @@ func Test_GetMetrics(t *testing.T) {
 	sugarLogger := logger.Sugar()
 
 	testCfg := config.AgentConfig{PollInterval: 10, ServerAddress: "localhost:8080", ReportInterval: 3}
-	agentServiceMetrics := New(&testCfg, sugarLogger)
+	collectService := New(&testCfg, sugarLogger)
 
-	agentServiceMetrics.CollectMetric()
-	metrics := agentServiceMetrics.GetMetrics()
+	collectService.CollectMetric()
+	metrics := collectService.GetMetrics()
 
 	expectedGauges := map[string]struct{}{
 		"Alloc":           {},
@@ -63,4 +63,22 @@ func Test_GetMetrics(t *testing.T) {
 			assert.True(t, ok, m.ID)
 		}
 	})
+}
+
+func BenchmarkCollectMetric(b *testing.B) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+
+	sugarLogger := logger.Sugar()
+
+
+	testCfg := config.AgentConfig{PollInterval: 10, ServerAddress: "localhost:8080", ReportInterval: 3}
+	collectService := New(&testCfg, sugarLogger)
+
+	b.ResetTimer()
+	for i := 0; i <= b.N; i++ {
+		collectService.CollectMetric()
+	}
 }

@@ -2,11 +2,19 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"go.uber.org/zap"
 )
+
+var allowedMetricTypes = []string{
+	models.Counter,
+	models.Gauge,
+}
+
+var ErrorMetricUnknownType = errors.New("metric has unknown type")
 
 type Storager interface {
 	Save(ctx context.Context, metric models.Metrics) error
@@ -25,6 +33,9 @@ func New(store Storager, logger *zap.SugaredLogger) *Metrics {
 }
 
 func (m *Metrics) Add(ctx context.Context, metric models.Metrics, value string) error {
+	if !isAllowedMetricType(metric.MType) {
+		return ErrorMetricUnknownType
+	}
 	if value != "" {
 		if metric.MType == models.Counter {
 			parseInt, err := strconv.ParseInt(value, 10, 64)
@@ -62,5 +73,20 @@ func (m *Metrics) GetAll(ctx context.Context) ([]models.Metrics, error) {
 }
 
 func (m *Metrics) Update(ctx context.Context, metrics []models.Metrics) error {
+	for _, m := range metrics {
+		if !isAllowedMetricType(m.MType) {
+			return ErrorMetricUnknownType
+		}
+	}
 	return m.store.Updates(ctx, metrics)
+}
+
+func isAllowedMetricType(mType string) bool {
+	for _, t := range allowedMetricTypes {
+		if t == mType {
+			return true
+		}
+	}
+
+	return false
 }

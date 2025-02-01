@@ -31,7 +31,7 @@ func New(cfg *config.ServerConfig, logger *zap.SugaredLogger, db *sql.DB) *Store
 	s := &Store{db: db, cfg: cfg, logger: logger}
 	if cfg.DatabaseDsn == "" {
 		s.sType = memType
-		s.Storage = NewMemStorage(cfg)
+		s.Storage = NewMemStorage()
 	} else {
 		s.sType = dbType
 		s.Storage = NewDBStorage(db)
