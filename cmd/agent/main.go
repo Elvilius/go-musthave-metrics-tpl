@@ -12,7 +12,6 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-
 	agent := agent.New()
 	agent.Run(ctx)
 }

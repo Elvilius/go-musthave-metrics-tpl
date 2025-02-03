@@ -104,7 +104,6 @@ func (s *Store) GetStorage() metrics.Storager {
 	return s.Storage
 }
 
-
-func (s *Store)Close() {
+func (s *Store) Close() {
 	s.db.Close()
 }

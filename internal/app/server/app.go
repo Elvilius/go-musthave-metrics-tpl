@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	_ "net/http/pprof"
+
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
@@ -16,8 +18,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
-	_ "net/http/pprof"
-
 )
 
 type AppServer struct {
@@ -64,14 +64,12 @@ func (a *AppServer) registerRoute() {
 	a.router.Use(m.VerifyHash)
 	a.router.Handle("/debug/pprof/*", http.DefaultServeMux)
 
-
 	a.router.Get("/", a.handler.All)
 	a.router.Post("/update/{type}/{id}/{value}", a.handler.Update)
 	a.router.Post("/update/", a.handler.UpdateJSON)
 	a.router.Get("/value/{type}/{id}", a.handler.Value)
 	a.router.Post("/value/", a.handler.ValueJSON)
 	a.router.Post("/updates/", a.handler.UpdatesJSON)
-
 
 	a.router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")

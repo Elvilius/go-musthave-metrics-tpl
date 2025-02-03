@@ -73,7 +73,6 @@ func BenchmarkCollectMetric(b *testing.B) {
 
 	sugarLogger := logger.Sugar()
 
-
 	testCfg := config.AgentConfig{PollInterval: 10, ServerAddress: "localhost:8080", ReportInterval: 3}
 	collectService := New(&testCfg, sugarLogger)
 

@@ -103,7 +103,7 @@ func TestMetrics_Update(t *testing.T) {
 			name: "Add fail invalid value",
 			args: args{
 				ctx:    ctx,
-				metric: []models.Metrics{{ID: models.MetricAlloc, MType: "REDSD", }},
+				metric: []models.Metrics{{ID: models.MetricAlloc, MType: "REDSD"}},
 			},
 			wantErr: true,
 		},

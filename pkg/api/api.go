@@ -54,7 +54,6 @@ func (api *API) Fetch(ctx context.Context, method string, endpoint string, body 
 		api.gzipWriter.Close()
 		api.gzipMutex.Unlock()
 
-
 		if len(compressedData) == 0 {
 			api.logger.Errorln("Error: compressedData is empty after gzipWriter.Close()")
 			return
