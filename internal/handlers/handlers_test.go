@@ -281,6 +281,7 @@ func ExampleHandler_Update() {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, request)
 	result := w.Result()
+	defer result.Body.Close()
 
 	fmt.Println("Status:", result.StatusCode)
 	// Output:
