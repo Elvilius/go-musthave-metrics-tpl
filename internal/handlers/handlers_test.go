@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -264,4 +265,24 @@ func TestHandler_GetAll(t *testing.T) {
 			result.Body.Close()
 		})
 	}
+}
+
+// ExampleHandler_Update demonstrates how to use the Update handler.
+func ExampleHandler_Update() {
+	memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
+	cfg := &config.ServerConfig{}
+	metricsService := metrics.New(memStorage, nil)
+	h := NewHandler(cfg, metricsService)
+
+	router := chi.NewRouter()
+	router.Post("/update/{type}/{id}/{value}", h.Update)
+
+	request := httptest.NewRequest(http.MethodPost, "/update/gauge/cpu/7513", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, request)
+	result := w.Result()
+
+	fmt.Println("Status:", result.StatusCode)
+	// Output:
+	// Status: 200
 }

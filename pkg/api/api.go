@@ -1,3 +1,4 @@
+// Package api provides a client for sending compressed HTTP requests.
 package api
 
 import (
@@ -12,6 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// API represents a client for sending HTTP requests with gzip compression.
 type API struct {
 	url        string
 	client     *http.Client
@@ -21,6 +23,9 @@ type API struct {
 	gzipMutex  sync.Mutex
 }
 
+// New creates a new API client with the specified URL and logger.
+//
+// The client is initialized with an HTTP client and a gzip writer.
 func New(url string, logger *zap.SugaredLogger) *API {
 	return &API{
 		url:        url,
@@ -30,6 +35,20 @@ func New(url string, logger *zap.SugaredLogger) *API {
 	}
 }
 
+// Fetch sends an HTTP request to the specified endpoint using the given method.
+//
+// The request body is compressed using gzip before sending. If the request
+// fails, it is retried up to three times with increasing delays.
+//
+// Parameters:
+//   - ctx: Context for request cancellation.
+//   - method: HTTP method (e.g., "POST").
+//   - endpoint: API endpoint (appended to base URL).
+//   - body: Request payload (will be compressed).
+//   - headers: Additional headers to include in the request.
+//
+// The function retries failed requests with exponential backoff.
+// Logs an error if the request ultimately fails.
 func (api *API) Fetch(ctx context.Context, method string, endpoint string, body []byte, headers map[string]string) {
 	url := fmt.Sprintf("http://%s%s/", api.url, endpoint)
 

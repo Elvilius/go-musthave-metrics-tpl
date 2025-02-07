@@ -1,3 +1,4 @@
+// Package handler provides HTTP handlers for working with metrics.
 package handler
 
 import (
@@ -12,10 +13,24 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// Metrics defines an interface for interacting with metric storage.
 type Metrics interface {
+	// Add inserts a new metric or updates an existing one.
+	// The metric type and value are provided as parameters.
+	// Returns an error if the operation fails.
 	Add(ctx context.Context, metric models.Metrics, value string) error
+
+	// GetOne retrieves a specific metric by its type and ID.
+	// Returns the metric or an error if it is not found.
 	GetOne(ctx context.Context, mType, id string) (*models.Metrics, error)
+
+	// GetAll retrieves all stored metrics.
+	// Returns a slice of metrics or an error in case of failure.
 	GetAll(ctx context.Context) ([]models.Metrics, error)
+
+	// Update modifies multiple metrics in a batch operation.
+	// Accepts a slice of Metrics and updates them.
+	// Returns an error if any metric update fails.
 	Update(ctx context.Context, metric []models.Metrics) error
 }
 
