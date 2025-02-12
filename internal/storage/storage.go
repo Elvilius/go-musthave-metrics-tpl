@@ -94,7 +94,6 @@ func (s *Store) runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileS
 			if err != nil {
 				logger.Errorln("Failed to save to file during shutdown", err)
 			}
-			os.Exit(1)
 			return
 		}
 	}

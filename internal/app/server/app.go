@@ -3,9 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"net/http"
-	"os"
 
 	_ "net/http/pprof"
 
@@ -87,14 +85,20 @@ func (a *AppServer) Run(ctx context.Context) {
 	a.registerRoute()
 	a.store.Run(ctx)
 
+	server := http.Server{
+		Addr:    a.cfg.Address,
+		Handler: a.router,
+	}
+
 	defer a.store.Close()
 	go func() {
-		fmt.Println("Starting server...")
-		err := http.ListenAndServe(a.cfg.Address, a.router)
-		if err != nil {
+		if err := server.ListenAndServe(); err != nil {
 			a.logger.Errorln(err)
-			os.Exit(1)
+			return
 		}
 	}()
 	<-ctx.Done()
+	if err := server.Shutdown(ctx); err != nil {
+		a.logger.Errorln("Server shutdown error:", err)
+	}
 }
