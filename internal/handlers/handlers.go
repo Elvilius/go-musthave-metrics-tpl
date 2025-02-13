@@ -1,31 +1,54 @@
+// Package handler provides HTTP handlers for working with metrics.
 package handler
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"strconv"
 
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"github.com/go-chi/chi/v5"
 )
 
-type Handler struct {
-	storage Storager
-}
+// Metrics defines an interface for interacting with metric storage.
+type Metrics interface {
+	// Add inserts a new metric or updates an existing one.
+	// The metric type and value are provided as parameters.
+	// Returns an error if the operation fails.
+	Add(ctx context.Context, metric models.Metrics, value string) error
 
-type Storager interface {
-	Save(ctx context.Context, metric models.Metrics) error
-	Get(ctx context.Context, mType, id string) (models.Metrics, bool, error)
+	// GetOne retrieves a specific metric by its type and ID.
+	// Returns the metric or an error if it is not found.
+	GetOne(ctx context.Context, mType, id string) (*models.Metrics, error)
+
+	// GetAll retrieves all stored metrics.
+	// Returns a slice of metrics or an error in case of failure.
 	GetAll(ctx context.Context) ([]models.Metrics, error)
-	Updates(ctx context.Context, metrics []models.Metrics) error
+
+	// Update modifies multiple metrics in a batch operation.
+	// Accepts a slice of Metrics and updates them.
+	// Returns an error if any metric update fails.
+	Update(ctx context.Context, metric []models.Metrics) error
 }
 
-func NewHandler(storage Storager) *Handler {
-	return &Handler{storage: storage}
+type Handler struct {
+	cfg     *config.ServerConfig
+	metrics Metrics
+}
+
+func NewHandler(cfg *config.ServerConfig, metrics Metrics) *Handler {
+	return &Handler{metrics: metrics, cfg: cfg}
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	defer r.Body.Close()
+
+	ctx := r.Context()
+
 	mType := chi.URLParam(r, "type")
 	id := chi.URLParam(r, "id")
 	value := chi.URLParam(r, "value")
@@ -44,30 +67,12 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
 	metric := models.Metrics{
 		ID:    id,
 		MType: mType,
 	}
 
-	if mType == models.Counter {
-		parseInt, err := strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		metric.Delta = &parseInt
-	} else {
-		parseFloat, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		metric.Value = &parseFloat
-	}
-
-	err := h.storage.Save(r.Context(), metric)
+	err := h.metrics.Add(ctx, metric, value)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -77,35 +82,31 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	defer r.Body.Close()
+
+	ctx := r.Context()
 	mType := chi.URLParam(r, "type")
 	id := chi.URLParam(r, "id")
-	var err error
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
-	m, ok, err := h.storage.Get(r.Context(), mType, id)
+	metric, err := h.metrics.GetOne(ctx, mType, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if !ok {
+	if metric == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	var bytes []byte
-	if m.MType == models.Counter {
-		bytes, err = json.Marshal(m.Delta)
-	} else {
-		bytes, err = json.Marshal(m.Value)
-	}
-
+	bytes, err := metric.MarshalValue()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	h.addHash(w, bytes)
+
 	_, err = w.Write(bytes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -114,49 +115,47 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
-	requestMetric := models.Metrics{}
-	err := json.NewDecoder(r.Body).Decode(&requestMetric)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	w.Header().Set("Content-Type", "application/json")
 	defer r.Body.Close()
 
-	w.Header().Set("Content-Type", "application/json")
-
-	var responseMetric models.Metrics
-
-	err = h.storage.Save(r.Context(), requestMetric)
+	ctx := r.Context()
+	var metric models.Metrics
+	err := json.NewDecoder(r.Body).Decode(&metric)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		fmt.Println(err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-	metric, ok, err := h.storage.Get(r.Context(), requestMetric.MType, requestMetric.ID)
+
+	err = h.metrics.Add(ctx, metric, "")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println(err)
+		http.Error(w, "Failed to update metric", http.StatusBadRequest)
 		return
-	}
-	if !ok {
-		responseMetric = requestMetric
-	} else {
-		responseMetric = metric
 	}
 
-	res, err := json.Marshal(responseMetric)
+	res, err := json.Marshal(metric)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		fmt.Println(err)
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
 		return
 	}
+
+	h.addHash(w, res)
+
 	w.WriteHeader(http.StatusOK)
-
 	_, err = w.Write(res)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		fmt.Println(err)
+
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 	}
 }
 
 func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	ctx := r.Context()
 	metric := models.Metrics{}
 
 	err := json.NewDecoder(r.Body).Decode(&metric)
@@ -165,14 +164,13 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	w.Header().Set("Content-Type", "application/json")
 
-	m, ok, err := h.storage.Get(r.Context(), metric.MType, metric.ID)
+	m, err := h.metrics.GetOne(ctx, metric.MType, metric.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if !ok {
+	if m == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -183,6 +181,7 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.addHash(w, bytes)
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
@@ -192,12 +191,11 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
+	w.Header().Set("Content-Type", "text/html")
 
-	m, err := h.storage.GetAll(r.Context())
+	ctx := r.Context()
+
+	m, err := h.metrics.GetAll(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -208,7 +206,6 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bytes)
 	if err != nil {
@@ -218,6 +215,10 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	defer r.Body.Close()
+
 	ctx := r.Context()
 	requestMetrics := []models.Metrics{}
 	err := json.NewDecoder(r.Body).Decode(&requestMetrics)
@@ -225,10 +226,8 @@ func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
-	w.Header().Set("Content-Type", "application/json")
 
-	errUpdate := h.storage.Updates(ctx, requestMetrics)
+	errUpdate := h.metrics.Update(ctx, requestMetrics)
 
 	if errUpdate != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -236,4 +235,13 @@ func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) addHash(w http.ResponseWriter, data []byte) {
+	if h.cfg.Key == "" {
+		return
+	}
+
+	hash := hashing.GenerateHash(h.cfg.Key, data)
+	w.Header().Set("HashSHA256", hash)
 }
