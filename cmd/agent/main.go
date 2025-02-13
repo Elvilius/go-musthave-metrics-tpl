@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"os/signal"
 	"syscall"
 
@@ -12,6 +13,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	agent := agent.New()
+	agent, err := agent.New()
+	if err != nil {
+		slog.Error("Error start app", err)
+	}
 	agent.Run(ctx)
 }

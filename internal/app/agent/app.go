@@ -26,10 +26,10 @@ type AppAgent struct {
 	sync.WaitGroup
 }
 
-func New() *AppAgent {
+func New() (*AppAgent, error) {
 	logger, err := logger.New()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	cfg := config.NewAgent()
 
@@ -41,7 +41,7 @@ func New() *AppAgent {
 		logger:    logger,
 		cfg:       cfg,
 		api:       api,
-	}
+	}, nil
 }
 
 func (app *AppAgent) Run(ctx context.Context) {
@@ -50,8 +50,8 @@ func (app *AppAgent) Run(ctx context.Context) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
-	metricsCh := make(chan models.Metrics)
-	sendMetricsCh := make(chan models.Metrics)
+	metricsCh := make(chan []*models.Metrics)
+	sendMetricsCh := make(chan []*models.Metrics)
 
 	ctx, cancel := context.WithCancel(ctx)
 	app.RegisterWorker(ctx, sendMetricsCh)
@@ -60,9 +60,10 @@ func (app *AppAgent) Run(ctx context.Context) {
 		cancel()
 		sendTicker.Stop()
 		collectTicker.Stop()
+		app.Wait()
 		close(metricsCh)
 		close(sendMetricsCh)
-		app.Wait()
+
 	}()
 
 	for {
@@ -77,19 +78,17 @@ func (app *AppAgent) Run(ctx context.Context) {
 				defer app.Done()
 				app.collector.CollectMetric()
 				metrics := app.collector.GetMetrics()
-				for _, m := range metrics {
-					select {
-					case metricsCh <- *m:
-					case <-ctx.Done():
-						return
-					}
+				select {
+				case metricsCh <- metrics:
+				case <-ctx.Done():
+					return
 				}
 			}()
 		case <-sendTicker.C:
 			select {
-			case m := <-metricsCh:
+			case metrics := <-metricsCh:
 				select {
-				case sendMetricsCh <- m:
+				case sendMetricsCh <- metrics:
 				case <-ctx.Done():
 					return
 				}
@@ -100,27 +99,29 @@ func (app *AppAgent) Run(ctx context.Context) {
 	}
 }
 
-func (app *AppAgent) Worker(ctx context.Context, id int, jobs <-chan models.Metrics) {
-	headers := make(map[string]string)
-	for metric := range jobs {
-		body, err := metric.MarshalMetric()
-		if err != nil {
-			app.logger.Error(err)
-			continue
+func (app *AppAgent) Worker(ctx context.Context, id int, jobs <-chan []*models.Metrics) {
+	for metrics := range jobs {
+		for _, metric := range metrics {
+			headers := make(map[string]string)
+			body, err := metric.MarshalMetric()
+			if err != nil {
+				app.logger.Error(err)
+				continue
+			}
+			if app.cfg.Key != "" {
+				headers["HashSHA256"] = hashing.GenerateHash(app.cfg.Key, body)
+			}
+			app.api.Fetch(ctx, http.MethodPost, "/update", body, headers)
 		}
-		if app.cfg.Key != "" {
-			headers["HashSHA256"] = hashing.GenerateHash(app.cfg.Key, body)
-		}
-		app.api.Fetch(ctx, http.MethodPost, "/update", body, headers)
 	}
 }
 
-func (app *AppAgent) RegisterWorker(ctx context.Context, jobs <-chan models.Metrics) {
-	app.Add(app.cfg.RateLimit)
+func (app *AppAgent) RegisterWorker(ctx context.Context, jobs <-chan []*models.Metrics) {
 	for i := 1; i <= app.cfg.RateLimit; i++ {
-		go func() {
+		localID := i
+		go func(id int) {
 			defer app.Done()
-			app.Worker(ctx, i, jobs)
-		}()
+			app.Worker(ctx, id, jobs)
+		}(localID)
 	}
 }
