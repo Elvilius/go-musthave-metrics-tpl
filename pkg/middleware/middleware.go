@@ -89,11 +89,15 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 	return g.Writer.Write(b)
 }
 
-func Gzip(h http.Handler) http.Handler {
+func (m *Middleware) Gzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			gz := gzip.NewWriter(w)
-			defer gz.Close()
+			defer func () {
+				if errClose := gz.Close(); errClose != nil {
+					m.logger.Errorln("error close gzip", errClose)
+				}
+			}()
 
 			w = &gzipResponseWriter{ResponseWriter: w, Writer: gz}
 			w.Header().Set("Content-Encoding", "gzip")
@@ -105,7 +109,11 @@ func Gzip(h http.Handler) http.Handler {
 				http.Error(w, "Failed to decompress request body", http.StatusInternalServerError)
 				return
 			}
-			defer gr.Close()
+			defer func () {
+				if errClose := gr.Close(); errClose != nil {
+					m.logger.Errorln("error close gzip", errClose)
+				}
+			}()
 
 			bodyBytes, _ := io.ReadAll(gr)
 			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
@@ -118,7 +126,11 @@ func Gzip(h http.Handler) http.Handler {
 
 func (m *Middleware) VerifyHash(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
+		defer func() {
+			if err := r.Body.Close(); err != nil {
+				m.logger.Errorln("error close body", err)
+			}
+		}()
 		ow := w
 
 		data, err := io.ReadAll(r.Body)

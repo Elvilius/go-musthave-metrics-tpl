@@ -33,7 +33,11 @@ func (f *FileStorage) SaveToFile() error {
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func () {
+		if errFileClose := file.Close(); errFileClose != nil {
+			fmt.Println(errFileClose)
+		}
+	}()
 
 	metrics, err := f.storage.GetAll(context.TODO())
 	if err != nil {

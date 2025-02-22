@@ -26,3 +26,6 @@ vendor/
 *tmp
 *docker-compose.yaml
 *.env
+agent
+server
+lint

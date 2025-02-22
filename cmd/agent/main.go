@@ -15,7 +15,7 @@ func main() {
 
 	agent, err := agent.New()
 	if err != nil {
-		slog.Error("Error start app", err)
+		slog.Error("Error start app")
 	}
 	agent.Run(ctx)
 }

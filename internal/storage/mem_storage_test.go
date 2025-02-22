@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
@@ -11,7 +12,7 @@ import (
 
 func saveMetric(store metrics.Storager, metrics []models.Metrics) {
 	for _, m := range metrics {
-		store.Save(context.TODO(), m)
+		fmt.Println(store.Save(context.TODO(), m))
 	}
 }
 

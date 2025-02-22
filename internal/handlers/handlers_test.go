@@ -1,3 +1,5 @@
+//nolint
+
 package handler
 
 import (
@@ -65,7 +67,9 @@ func (r *TestStorage) GetAll(ctx context.Context) ([]models.Metrics, error) {
 
 func (r *TestStorage) Updates(ctx context.Context, metrics []models.Metrics) error {
 	for _, metric := range metrics {
-		r.Save(ctx, metric)
+		if err := r.Save(ctx, metric); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -77,8 +81,8 @@ func TestHandler_Update(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		want    want
 		request string
+		want    want
 	}{
 		{
 			name:    "positive test #1",
@@ -114,7 +118,7 @@ func TestHandler_Update(t *testing.T) {
 
 		cfg := &config.ServerConfig{}
 		metricsService := metrics.New(memStorage, nil)
-		h := NewHandler(cfg, metricsService)
+		h := NewHandler(cfg, nil, metricsService)
 		router := chi.NewRouter()
 		router.Post("/update/{type}/{id}/{value}", h.Update)
 
@@ -123,8 +127,7 @@ func TestHandler_Update(t *testing.T) {
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, request)
 			result := w.Result()
-			assert.Equal(t, tt.want.status, result.StatusCode)
-			result.Body.Close()
+			assert.Equal(t, tt.want.status, result.StatusCode)	
 		})
 	}
 }
@@ -136,8 +139,8 @@ func TestHandler_Value(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		want    want
 		request string
+		want    want
 	}{
 		{
 			name:    "positive test #1",
@@ -195,7 +198,7 @@ func TestHandler_Value(t *testing.T) {
 	}
 
 	cfg := &config.ServerConfig{}
-	h := NewHandler(cfg, metricService)
+	h := NewHandler(cfg, nil, metricService)
 	router := chi.NewRouter()
 	router.Get("/value/{type}/{id}", h.Value)
 	for _, tt := range tests {
@@ -205,7 +208,8 @@ func TestHandler_Value(t *testing.T) {
 			router.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.status, result.StatusCode)
-			result.Body.Close()
+			err := result.Body.Close()
+			fmt.Println(err)
 		})
 	}
 }
@@ -217,8 +221,8 @@ func TestHandler_GetAll(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		want    want
 		request string
+		want    want
 	}{
 		{
 			name: "positive test #1",
@@ -247,12 +251,12 @@ func TestHandler_GetAll(t *testing.T) {
 	}
 
 	for _, m := range metrics {
-		memStorage.Save(context.TODO(), m)
+		fmt.Println(memStorage.Save(context.TODO(), m))
 
 	}
 
 	cfg := &config.ServerConfig{}
-	h := NewHandler(cfg, metricService)
+	h := NewHandler(cfg, nil, metricService)
 	router := chi.NewRouter()
 	router.Get("/", h.All)
 	for _, tt := range tests {
@@ -262,7 +266,7 @@ func TestHandler_GetAll(t *testing.T) {
 			router.ServeHTTP(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want.status, result.StatusCode)
-			result.Body.Close()
+			fmt.Println(result.Body.Close())
 		})
 	}
 }
@@ -272,7 +276,7 @@ func ExampleHandler_Update() {
 	memStorage := &TestStorage{metrics: make(map[string]models.Metrics)}
 	cfg := &config.ServerConfig{}
 	metricsService := metrics.New(memStorage, nil)
-	h := NewHandler(cfg, metricsService)
+	h := NewHandler(cfg, nil, metricsService)
 
 	router := chi.NewRouter()
 	router.Post("/update/{type}/{id}/{value}", h.Update)
@@ -281,7 +285,9 @@ func ExampleHandler_Update() {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, request)
 	result := w.Result()
-	defer result.Body.Close()
+	defer func() {
+		fmt.Println(result.Body.Close())
+	}()
 
 	fmt.Println("Status:", result.StatusCode)
 	// Output:

@@ -10,7 +10,12 @@ func New() (*zap.SugaredLogger, error) {
 		return nil, err
 	}
 
-	defer logger.Sync()
+	defer func() {
+		if errSyncLogger := logger.Sync(); errSyncLogger != nil {
+			logger.Sugar().Errorln(errSyncLogger)
+		}
+	}()
+
 	sugarLogger := logger.Sugar()
 	return sugarLogger, nil
 }

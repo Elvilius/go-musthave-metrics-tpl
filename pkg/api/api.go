@@ -18,8 +18,8 @@ type API struct {
 	url        string
 	client     *http.Client
 	logger     *zap.SugaredLogger
-	gzipBuffer bytes.Buffer
 	gzipWriter *gzip.Writer
+	gzipBuffer bytes.Buffer
 	gzipMutex  sync.Mutex
 }
 
@@ -65,12 +65,19 @@ func (api *API) Fetch(ctx context.Context, method string, endpoint string, body 
 			return
 		}
 
-		api.gzipWriter.Flush()
+		if errFlush := api.gzipWriter.Flush(); errFlush != nil {
+			api.logger.Errorln("Error writing to gzip writer:", errFlush)
+			return
+		}
 
 		compressedData := make([]byte, api.gzipBuffer.Len())
 		copy(compressedData, api.gzipBuffer.Bytes())
 
-		api.gzipWriter.Close()
+		if errWriter := api.gzipWriter.Close(); errWriter != nil {
+			api.logger.Errorln("Error close to gzip writer:", errWriter)
+			return
+		}
+
 		api.gzipMutex.Unlock()
 
 		if len(compressedData) == 0 {
@@ -97,7 +104,11 @@ func (api *API) Fetch(ctx context.Context, method string, endpoint string, body 
 
 		res, err := api.client.Do(req)
 		if err == nil {
-			defer res.Body.Close()
+			defer func() {
+				if errBodyClose := res.Body.Close(); errBodyClose != nil {
+					api.logger.Errorln("Error close body", errBodyClose)
+				}
+			}()
 			if res.StatusCode == http.StatusOK {
 				return
 			}

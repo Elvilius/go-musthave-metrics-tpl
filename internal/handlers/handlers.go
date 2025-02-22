@@ -11,6 +11,7 @@ import (
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 // Metrics defines an interface for interacting with metric storage.
@@ -36,16 +37,21 @@ type Metrics interface {
 
 type Handler struct {
 	cfg     *config.ServerConfig
+	logger  *zap.SugaredLogger
 	metrics Metrics
 }
 
-func NewHandler(cfg *config.ServerConfig, metrics Metrics) *Handler {
-	return &Handler{metrics: metrics, cfg: cfg}
+func NewHandler(cfg *config.ServerConfig, logger *zap.SugaredLogger, metrics Metrics) *Handler {
+	return &Handler{metrics: metrics, cfg: cfg, logger: logger}
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	defer r.Body.Close()
+	defer func() {
+		if errBodyClose := r.Body.Close(); errBodyClose != nil {
+			h.logger.Errorln("error close body", errBodyClose)
+		}
+	}()
 
 	ctx := r.Context()
 
@@ -83,7 +89,11 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	defer r.Body.Close()
+	defer func() {
+		if errBodyClose := r.Body.Close(); errBodyClose != nil {
+			h.logger.Errorln("error close body", errBodyClose)
+		}
+	}()
 
 	ctx := r.Context()
 	mType := chi.URLParam(r, "type")
@@ -116,7 +126,11 @@ func (h *Handler) Value(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	defer r.Body.Close()
+	defer func() {
+		if errBodyClose := r.Body.Close(); errBodyClose != nil {
+			h.logger.Errorln("error close body", errBodyClose)
+		}
+	}()
 
 	ctx := r.Context()
 	var metric models.Metrics
@@ -160,7 +174,12 @@ func (h *Handler) ValueJSON(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&metric)
 
-	defer r.Body.Close()
+	defer func() {
+		if errBodyClose := r.Body.Close(); errBodyClose != nil {
+			h.logger.Errorln("error close body", errBodyClose)
+		}
+	}()
+
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
@@ -217,7 +236,11 @@ func (h *Handler) All(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdatesJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	defer r.Body.Close()
+	defer func() {
+		if errBodyClose := r.Body.Close(); errBodyClose != nil {
+			h.logger.Errorln("error close body", errBodyClose)
+		}
+	}()
 
 	ctx := r.Context()
 	requestMetrics := []models.Metrics{}

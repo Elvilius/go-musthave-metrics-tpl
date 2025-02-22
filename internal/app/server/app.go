@@ -40,7 +40,7 @@ func New() *AppServer {
 	}
 	mainStore := storage.New(cfg, logger, db)
 	metricsService := metrics.New(mainStore.GetStorage(), logger)
-	handler := handler.NewHandler(cfg, metricsService)
+	handler := handler.NewHandler(cfg, logger, metricsService)
 
 	router := chi.NewRouter()
 
@@ -58,7 +58,7 @@ func New() *AppServer {
 func (a *AppServer) registerRoute() {
 	m := middleware.New(a.cfg, a.logger)
 	a.router.Use(m.Logging)
-	a.router.Use(middleware.Gzip)
+	a.router.Use(m.Gzip)
 	a.router.Use(m.VerifyHash)
 	a.router.Handle("/debug/pprof/*", http.DefaultServeMux)
 

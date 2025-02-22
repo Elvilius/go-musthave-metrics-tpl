@@ -8,20 +8,20 @@ import (
 )
 
 type AgentConfig struct {
-	ServerAddress  string
-	PollInterval   int
-	ReportInterval int
-	Key            string
-	RateLimit      int
+    ServerAddress  string
+    Key            string
+    PollInterval   int
+    ReportInterval int
+    RateLimit      int
 }
 
 type ServerConfig struct {
 	Address         string
-	StoreInterval   int
 	FileStoragePath string
-	Restore         bool
 	DatabaseDsn     string
 	Key             string
+	StoreInterval   int
+	Restore         bool
 }
 
 func getEnvOrDefaultString(envVar string, defaultValue string) string {

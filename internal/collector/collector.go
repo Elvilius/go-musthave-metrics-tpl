@@ -17,8 +17,8 @@ var memStats runtime.MemStats
 
 type Collector struct {
 	cfg     *config.AgentConfig
-	metrics []*models.Metrics
 	logger  *zap.SugaredLogger
+	metrics []*models.Metrics
 }
 
 func New(cfg *config.AgentConfig, logger *zap.SugaredLogger) *Collector {

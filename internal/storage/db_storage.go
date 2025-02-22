@@ -81,7 +81,7 @@ func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) erro
 
 	for _, metric := range metrics {
 		var query string
-		var args []interface{}
+		var args []any
 
 		if metric.MType == models.Counter {
 			query = `
@@ -101,13 +101,17 @@ func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) erro
 
 		_, err := tx.ExecContext(ctx, query, args...)
 		if err != nil {
-			tx.Rollback()
+			if errRollback := tx.Rollback(); errRollback != nil {
+				return errRollback
+			}
 			return err
 		}
 	}
 	errCommit := tx.Commit()
 	if errCommit != nil {
-		tx.Rollback()
+		if errRollback := tx.Rollback(); errRollback != nil {
+			return errRollback
+		}
 		return errCommit
 	}
 	return nil

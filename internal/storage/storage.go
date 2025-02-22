@@ -20,11 +20,11 @@ const memType storageType = "1"
 const dbType storageType = "2"
 
 type Store struct {
-	Storage metrics.Storager
-	sType   storageType
 	cfg     *config.ServerConfig
 	db      *sql.DB
 	logger  *zap.SugaredLogger
+	Storage metrics.Storager
+	sType   storageType
 }
 
 func New(cfg *config.ServerConfig, logger *zap.SugaredLogger, db *sql.DB) *Store {
@@ -73,8 +73,8 @@ func (s *Store) runFile(ctx context.Context, cfg *config.ServerConfig, fs *FileS
 		logger.Errorln("Failed to get working directory:", err)
 	}
 	dir, _ := filepath.Split(cfg.FileStoragePath)
-	if err := os.MkdirAll(filepath.Join(wd, dir), 0o777); err != nil {
-		logger.Errorln("Failed to create directories:", err)
+	if errMkdir := os.MkdirAll(filepath.Join(wd, dir), 0o777); err != nil {
+		logger.Errorln("Failed to create directories:", errMkdir)
 	}
 
 	err = fs.LoadFromFile()
@@ -104,5 +104,7 @@ func (s *Store) GetStorage() metrics.Storager {
 }
 
 func (s *Store) Close() {
-	s.db.Close()
+	if err := s.db.Close(); err != nil {
+		s.logger.Errorln("error close db", err)
+	}
 }
