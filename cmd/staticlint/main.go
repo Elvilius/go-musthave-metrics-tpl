@@ -1,6 +1,10 @@
+// Package main implements a custom static code analyzer using multichecker.
+// This analyzer includes standard Go checks, staticcheck analyzers,
+// and a custom analyzer (exitcheck) that detects os.Exit() calls in the main function.
 package main
 
 import (
+	"github.com/Elvilius/go-musthave-metrics-tpl/cmd/staticlint/exitcheck"
 	"github.com/gordonklaus/ineffassign/pkg/ineffassign"
 	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis"
@@ -59,12 +63,15 @@ import (
 	"honnef.co/go/tools/staticcheck"
 )
 
+// main initializes and runs the multichecker with the selected analyzers.
 func main() {
+	// checksData stores the list of analyzers to be executed.
 	checks := map[string]bool{
 		"S1005": true,
 		"U1000": true,
 	}
 
+	// Add standard Go analyzers.
 	checksData := []*analysis.Analyzer{
 		asmdecl.Analyzer,
 		appends.Analyzer,
@@ -116,20 +123,36 @@ func main() {
 		waitgroup.Analyzer,
 	}
 
-	//Add all staticcheck
+	// Add analyzers from staticcheck.
 	for _, s := range staticcheck.Analyzers {
 		checksData = append(checksData, s.Analyzer)
 	}
 
+	// Enable only selected analyzers from simple.
 	for _, s := range simple.Analyzers {
 		if checks[s.Analyzer.Name] {
 			checksData = append(checksData, s.Analyzer)
 		}
 	}
 
+	// Add errcheck and ineffassign analyzers.
 	checksData = append(checksData, errcheck.Analyzer)
 	checksData = append(checksData, ineffassign.Analyzer)
 
-	//skip tests
+	// Add the custom exitcheck analyzer.
+	checksData = append(checksData, exitcheck.ExitCheckAnalyzer)
+
+	// Run multichecker with the selected analyzers.
 	multichecker.Main(checksData...)
 }
+
+/*
+Example usage:
+
+To run the static analyzer on the project, use the following command:
+
+	go run cmd/staticlint/main.go ./...
+
+This will analyze all Go files in the project and report issues based on the configured analyzers.
+
+*/
