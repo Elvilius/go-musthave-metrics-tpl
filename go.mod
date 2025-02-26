@@ -1,6 +1,6 @@
 module github.com/Elvilius/go-musthave-metrics-tpl
 
-go 1.23.2
+go 1.22.12
 
 require (
 	github.com/golang/mock v1.6.0
