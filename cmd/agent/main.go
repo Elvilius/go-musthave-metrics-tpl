@@ -2,11 +2,19 @@ package main
 
 import (
 	"context"
+	"fmt"
+	//"fmt"
 	"log/slog"
 	"os/signal"
 	"syscall"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/app/agent"
+)
+
+var (
+	BuildVersion string = "NA"
+	BuildDate    string = "NA"
+	BuildCommit  string = "NA"
 )
 
 func main() {
@@ -17,5 +25,10 @@ func main() {
 	if err != nil {
 		slog.Error("Error start app")
 	}
+	
+	fmt.Printf("Build version=%s \n", BuildVersion)
+	fmt.Printf("Build date=%s \n", BuildDate)
+	fmt.Printf("Build commit=%s \n", BuildCommit)
+
 	agent.Run(ctx)
 }
