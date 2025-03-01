@@ -2,7 +2,6 @@ module github.com/Elvilius/go-musthave-metrics-tpl
 
 go 1.22.3
 
-
 require (
 	github.com/golang/mock v1.6.0
 	github.com/lib/pq v1.10.9
@@ -27,6 +26,7 @@ require (
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	honnef.co/go/tools v0.5.0 // indirect
 )
 
 require (
@@ -41,5 +41,4 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/tools v0.30.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	honnef.co/go/tools v0.6.0
 )

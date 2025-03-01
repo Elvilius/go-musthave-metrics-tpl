@@ -55,12 +55,11 @@ import (
 	"golang.org/x/tools/go/analysis/passes/unusedwrite"
 	"golang.org/x/tools/go/analysis/passes/usesgenerics"
 	"golang.org/x/tools/go/analysis/passes/waitgroup"
+	"honnef.co/go/tools/simple"
+	"honnef.co/go/tools/staticcheck"
 
 	"golang.org/x/tools/go/analysis/passes/shadow"
 	"golang.org/x/tools/go/analysis/passes/shift"
-
-	"honnef.co/go/tools/simple"
-	"honnef.co/go/tools/staticcheck"
 )
 
 // main initializes and runs the multichecker with the selected analyzers.
