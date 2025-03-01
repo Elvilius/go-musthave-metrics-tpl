@@ -127,6 +127,7 @@ func TestHandler_Update(t *testing.T) {
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, request)
 			result := w.Result()
+			defer result.Body.Close()
 			assert.Equal(t, tt.want.status, result.StatusCode)	
 		})
 	}
