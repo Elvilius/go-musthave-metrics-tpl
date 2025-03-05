@@ -2,60 +2,33 @@ package config
 
 import (
 	"flag"
-	"fmt"
-	"os"
-	"strconv"
+	"github.com/caarlos0/env/v11"
+	"go.uber.org/zap"
 )
 
 type AgentConfig struct {
-    ServerAddress  string
-    Key            string
-    PollInterval   int
-    ReportInterval int
-    RateLimit      int
+	ServerAddress  string `env:"ADDRESS" envDefault:"localhost:8080"`
+	Key            string `env:"KEY" envDefault:""`
+	PollInterval   int    `env:"POLL_INTERVAL" envDefault:"3"`
+	ReportInterval int    `env:"REPORT_INTERVAL" envDefault:"10"`
+	RateLimit      int    `env:"RATE_LIMIT" envDefault:"3"`
 }
 
 type ServerConfig struct {
-	Address         string
-	FileStoragePath string
-	DatabaseDsn     string
-	Key             string
-	StoreInterval   int
-	Restore         bool
+	Address         string `env:"ADDRESS" envDefault:"localhost:8080"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/tmp/metrics-db.json"`
+	DatabaseDsn     string `env:"DATABASE_DSN" envDefault:""`
+	Key             string `env:"KEY" envDefault:""`
+	StoreInterval   int    `env:"STORE_INTERVAL" envDefault:"300"`
+	Restore         bool   `env:"RESTORE" envDefault:"true"`
 }
 
-func getEnvOrDefaultString(envVar string, defaultValue string) string {
-	if value, ok := os.LookupEnv(envVar); ok {
-		return value
-	}
-	return defaultValue
-}
+func NewAgent(logger *zap.SugaredLogger) (*AgentConfig, error) {
+	var cfg AgentConfig
 
-func getEnvOrDefaultBool(envVar string, defaultValue bool) bool {
-	if value, ok := os.LookupEnv(envVar); ok {
-		if parsedValue, err := strconv.ParseBool(value); err == nil {
-			return parsedValue
-		}
-	}
-	return defaultValue
-}
-
-func getEnvOrDefaultInt(envVar string, defaultValue int) int {
-	if value, ok := os.LookupEnv(envVar); ok {
-		if parsedValue, err := strconv.Atoi(value); err == nil {
-			return parsedValue
-		}
-	}
-	return defaultValue
-}
-
-func NewAgent() *AgentConfig {
-	cfg := &AgentConfig{
-		ServerAddress:  getEnvOrDefaultString("ADDRESS", "localhost:8080"),
-		PollInterval:   getEnvOrDefaultInt("POLL_INTERVAL", 3),
-		ReportInterval: getEnvOrDefaultInt("REPORT_INTERVAL", 10),
-		Key:            getEnvOrDefaultString("KEY", ""),
-		RateLimit:      getEnvOrDefaultInt("RATE_LIMIT", 3),
+	cfg, err := env.ParseAs[AgentConfig]()
+	if err != nil {
+		return &cfg, err
 	}
 
 	pollInterval := flag.Int("p", cfg.PollInterval, "pollInterval")
@@ -71,22 +44,20 @@ func NewAgent() *AgentConfig {
 	cfg.Key = *secretKey
 	cfg.RateLimit = *rateLimit
 
-	fmt.Println("Server Address:", cfg.ServerAddress)
-	fmt.Println("Report Interval:", cfg.ReportInterval)
-	fmt.Println("Poll Interval:", cfg.PollInterval)
-	fmt.Println("Secret Key:", cfg.Key)
-	fmt.Println("Rate limit:", cfg.RateLimit)
-	return cfg
+	logger.Infoln("Server Address:", cfg.ServerAddress)
+	logger.Infoln("Report Interval:", cfg.ReportInterval)
+	logger.Infoln("Poll Interval:", cfg.PollInterval)
+	logger.Infoln("Secret Key:", cfg.Key)
+	logger.Infoln("Rate limit:", cfg.RateLimit)
+	return &cfg, nil
 }
 
-func NewServer() *ServerConfig {
-	cfg := &ServerConfig{
-		Address:         getEnvOrDefaultString("ADDRESS", "localhost:8080"),
-		StoreInterval:   getEnvOrDefaultInt("STORE_INTERVAL", 300),
-		FileStoragePath: getEnvOrDefaultString("FILE_STORAGE_PATH", "/tmp/metrics-db.json"),
-		Restore:         getEnvOrDefaultBool("RESTORE", true),
-		DatabaseDsn:     getEnvOrDefaultString("DATABASE_DSN", ""),
-		Key:             getEnvOrDefaultString("KEY", ""),
+func NewServer(logger *zap.SugaredLogger) (*ServerConfig, error) {
+	var cfg ServerConfig
+
+	cfg, err := env.ParseAs[ServerConfig]()
+	if err != nil {
+		return &cfg, err
 	}
 
 	serverAddress := flag.String("a", cfg.Address, "server address")
@@ -105,12 +76,12 @@ func NewServer() *ServerConfig {
 	cfg.DatabaseDsn = *databaseDsn
 	cfg.Key = *secretKey
 
-	fmt.Println("Server Address:", cfg.Address)
-	fmt.Println("Store Interval:", cfg.StoreInterval)
-	fmt.Println("File Storage Path:", cfg.FileStoragePath)
-	fmt.Println("Restore:", cfg.Restore)
-	fmt.Println("Database Dsn", cfg.DatabaseDsn)
-	fmt.Println("Secret Key:", cfg.Key)
+	logger.Infoln("Server Address:", cfg.Address)
+	logger.Infoln("Store Interval:", cfg.StoreInterval)
+	logger.Infoln("File Storage Path:", cfg.FileStoragePath)
+	logger.Infoln("Restore:", cfg.Restore)
+	logger.Infoln("Database Dsn", cfg.DatabaseDsn)
+	logger.Infoln("Secret Key:", cfg.Key)
 
-	return cfg
+	return &cfg, nil
 }

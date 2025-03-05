@@ -2,11 +2,9 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"net/http"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	collector "github.com/Elvilius/go-musthave-metrics-tpl/internal/collector"
@@ -14,7 +12,6 @@ import (
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/api"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
-	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -26,12 +23,11 @@ type AppAgent struct {
 	sync.WaitGroup
 }
 
-func New() (*AppAgent, error) {
-	logger, err := logger.New()
+func New(logger *zap.SugaredLogger) (*AppAgent, error) {
+	cfg, err := config.NewAgent(logger)
 	if err != nil {
 		return nil, err
 	}
-	cfg := config.NewAgent()
 
 	collector := collector.New(cfg, logger)
 	api := api.New(cfg.ServerAddress, logger)
@@ -47,9 +43,6 @@ func New() (*AppAgent, error) {
 func (app *AppAgent) Run(ctx context.Context) {
 	collectTicker := time.NewTicker(time.Duration(app.cfg.PollInterval) * time.Second)
 	sendTicker := time.NewTicker(time.Duration(app.cfg.ReportInterval) * time.Second)
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-
 	metricsCh := make(chan []*models.Metrics)
 	sendMetricsCh := make(chan []*models.Metrics)
 
@@ -57,46 +50,60 @@ func (app *AppAgent) Run(ctx context.Context) {
 	app.RegisterWorker(ctx, sendMetricsCh)
 
 	defer func() {
+		fmt.Println(123123123)
 		cancel()
-		sendTicker.Stop()
-		collectTicker.Stop()
-		app.Wait()
 		close(metricsCh)
 		close(sendMetricsCh)
-
 	}()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-stop:
-			return
-		case <-collectTicker.C:
-			app.Add(1)
-			go func() {
-				defer app.Done()
-				app.collector.CollectMetric()
-				metrics := app.collector.GetMetrics()
-				select {
-				case metricsCh <- metrics:
-				case <-ctx.Done():
-					return
-				}
-			}()
-		case <-sendTicker.C:
+	app.Add(1)
+	go func() {
+		defer app.Done()
+		for range collectTicker.C {
 			select {
-			case metrics := <-metricsCh:
-				select {
-				case sendMetricsCh <- metrics:
-				case <-ctx.Done():
-					return
-				}
 			case <-ctx.Done():
+				collectTicker.Stop()
 				return
+			default:
+				app.Add(1)
+				go func() {
+					defer app.Done()
+					app.collector.CollectMetric()
+					metrics := app.collector.GetMetrics()
+					select {
+					case metricsCh <- metrics:
+					case <-ctx.Done():
+						return
+					}
+				}()
 			}
 		}
-	}
+	}()
+
+	app.Add(1)
+	go func() {
+		defer app.Done()
+		for range sendTicker.C {
+			select {
+			case <-ctx.Done():
+				sendTicker.Stop()
+				return
+			default:
+				select {
+				case metrics := <-metricsCh:
+					select {
+					case sendMetricsCh <- metrics:
+					case <-ctx.Done():
+						return
+					}
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	app.Wait()
 }
 
 func (app *AppAgent) Worker(ctx context.Context, id int, jobs <-chan []*models.Metrics) {

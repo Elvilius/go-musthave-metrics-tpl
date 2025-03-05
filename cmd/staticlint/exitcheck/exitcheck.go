@@ -13,7 +13,7 @@ var ExitCheckAnalyzer = &analysis.Analyzer{
 	Run:  run,
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func run(pass *analysis.Pass) (any, error) {
 	for _, file := range pass.Files {
 		filename := pass.Fset.Position(file.Pos()).Filename
 		if !strings.HasSuffix(filename, "main.go") {
@@ -24,21 +24,34 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 
 		ast.Inspect(file, func(node ast.Node) bool {
-			if funcMain, ok := node.(*ast.FuncDecl); ok && funcMain.Name.Name == "main" {
-				for _, body := range funcMain.Body.List {
-					if expr, ok := body.(*ast.ExprStmt); ok {
-						if call, ok := expr.X.(*ast.CallExpr); ok {
-							if selectorExpr, ok := call.Fun.(*ast.SelectorExpr); ok {
-								if selectorExpr.Sel.Name == "Exit" {
-									if selectorIdent, ok := selectorExpr.X.(*ast.Ident); ok {
-										if selectorIdent.Name == "os" {
-											pass.Reportf(selectorExpr.Pos(), "os.Exit usage in main function")
-										}
-									}
-								}
-							}
-						}
-					}
+			funcMain, ok := node.(*ast.FuncDecl)
+			if !ok || funcMain.Name.Name != "main" {
+				return true
+			}
+
+			for _, body := range funcMain.Body.List {
+				expr, ok := body.(*ast.ExprStmt)
+
+				if !ok {
+					continue
+				}
+				call, ok := expr.X.(*ast.CallExpr)
+				if !ok {
+					continue
+				}
+
+				selectorExpr, ok := call.Fun.(*ast.SelectorExpr)
+				if !ok {
+					continue
+				}
+
+				if selectorExpr.Sel.Name != "Exit" {
+					continue
+				}
+
+				if selectorIdent, ok := selectorExpr.X.(*ast.Ident); ok && selectorIdent.Name == "os" {
+					pass.Reportf(selectorExpr.Pos(), "os.Exit usage in main function")
+
 				}
 
 			}

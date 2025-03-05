@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"time"
 
 	_ "net/http/pprof"
 
@@ -11,7 +12,6 @@ import (
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
-	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/middleware"
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
@@ -26,18 +26,21 @@ type AppServer struct {
 	store   *storage.Store
 }
 
-func New() *AppServer {
-	logger, err := logger.New()
+func New(logger *zap.SugaredLogger) (*AppServer, error) {
+	cfg, err := config.NewServer(logger)
 	if err != nil {
-		logger.Fatal(err)
+		return nil, err
 	}
-
-	cfg := config.NewServer()
 
 	db, err := sql.Open("postgres", cfg.DatabaseDsn)
 	if err != nil {
 		logger.Fatalw("Failed to open DB", "error", err)
 	}
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(1 * time.Minute)
+
 	mainStore := storage.New(cfg, logger, db)
 	metricsService := metrics.New(mainStore.GetStorage(), logger)
 	handler := handler.NewHandler(cfg, logger, metricsService)
@@ -52,7 +55,7 @@ func New() *AppServer {
 		store:   mainStore,
 	}
 
-	return server
+	return server, nil
 }
 
 func (a *AppServer) registerRoute() {
