@@ -2,22 +2,39 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
-	"github.com/Elvilius/go-musthave-metrics-tpl/internal/services"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/app/agent"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/logger"
 )
 
-func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+var (
+	BuildVersion string = "NA"
+	BuildDate    string = "NA"
+	BuildCommit  string = "NA"
+)
 
-	defer cancel()
+func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	logger, err := logger.New()
 	if err != nil {
-		panic(err)
+		logger.Fatal(err)
 	}
-	cfg := config.NewAgent()
-	agent := services.NewAgentMetricService(cfg, logger)
+
+	
+	agent, err := agent.New(logger)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	logger.Infof("Build version=%s \n", BuildVersion)
+	logger.Infof("Build date=%s \n", BuildDate)
+	logger.Infof("Build commit=%s \n", BuildCommit)
+
 	agent.Run(ctx)
+	os.Exit(1)
 }

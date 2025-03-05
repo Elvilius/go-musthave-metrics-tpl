@@ -1,48 +1,66 @@
 package storage
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
-	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
 
 type FileStorage struct {
 	cfg     *config.ServerConfig
-	storage handler.Storager
+	storage metrics.Storager
 }
 
-func NewFileStorage(cfg *config.ServerConfig, storage handler.Storager) *FileStorage {
+func NewFileStorage(cfg *config.ServerConfig, storage metrics.Storager) *FileStorage {
 	return &FileStorage{cfg: cfg, storage: storage}
 }
 
 func (f *FileStorage) SaveToFile() error {
 	wd, err := os.Getwd()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 	path := filepath.Join(wd, f.cfg.FileStoragePath)
+
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func () {
+		if errFileClose := file.Close(); errFileClose != nil {
+			fmt.Println(errFileClose)
+		}
+	}()
 
 	metrics, err := f.storage.GetAll(context.TODO())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get metrics: %w", err)
 	}
+
 	bytes, err := json.Marshal(metrics)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal metrics: %w", err)
 	}
-	_, err = file.Write(bytes)
+
+	writer := bufio.NewWriter(file)
+	_, err = writer.Write(bytes)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write to file: %w", err)
+	}
+
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush data to file: %w", err)
+	}
+
+	if err := file.Truncate(int64(len(bytes))); err != nil {
+		return fmt.Errorf("failed to truncate file: %w", err)
 	}
 
 	return nil

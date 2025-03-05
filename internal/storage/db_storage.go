@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
+	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 )
 
@@ -13,7 +13,7 @@ type DBStorage struct {
 	DB *sql.DB
 }
 
-func NewDBStorage(db *sql.DB) handler.Storager {
+func NewDBStorage(db *sql.DB) metrics.Storager {
 	return &DBStorage{DB: db}
 }
 
@@ -81,7 +81,7 @@ func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) erro
 
 	for _, metric := range metrics {
 		var query string
-		var args []interface{}
+		var args []any
 
 		if metric.MType == models.Counter {
 			query = `
@@ -101,13 +101,17 @@ func (db *DBStorage) Updates(ctx context.Context, metrics []models.Metrics) erro
 
 		_, err := tx.ExecContext(ctx, query, args...)
 		if err != nil {
-			tx.Rollback()
+			if errRollback := tx.Rollback(); errRollback != nil {
+				return errRollback
+			}
 			return err
 		}
 	}
 	errCommit := tx.Commit()
 	if errCommit != nil {
-		tx.Rollback()
+		if errRollback := tx.Rollback(); errRollback != nil {
+			return errRollback
+		}
 		return errCommit
 	}
 	return nil
