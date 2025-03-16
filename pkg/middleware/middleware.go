@@ -6,19 +6,13 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/crypto"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"go.uber.org/zap"
 )
-
-var pool = &sync.Pool{
-	New: func() interface{} {
-		return gzip.NewWriter(&bytes.Buffer{})
-	},
-}
 
 type (
 	responseData struct {
@@ -35,12 +29,14 @@ type (
 type Middleware struct {
 	cfg    *config.ServerConfig
 	logger *zap.SugaredLogger
+	crypto *crypto.Crypto
 }
 
-func New(cfg *config.ServerConfig, logger *zap.SugaredLogger) *Middleware {
+func New(cfg *config.ServerConfig, crypto *crypto.Crypto, logger *zap.SugaredLogger) *Middleware {
 	return &Middleware{
 		cfg:    cfg,
 		logger: logger,
+		crypto: crypto,
 	}
 }
 
@@ -93,7 +89,7 @@ func (m *Middleware) Gzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			gz := gzip.NewWriter(w)
-			defer func () {
+			defer func() {
 				if errClose := gz.Close(); errClose != nil {
 					m.logger.Errorln("error close gzip", errClose)
 				}
@@ -109,7 +105,7 @@ func (m *Middleware) Gzip(h http.Handler) http.Handler {
 				http.Error(w, "Failed to decompress request body", http.StatusInternalServerError)
 				return
 			}
-			defer func () {
+			defer func() {
 				if errClose := gr.Close(); errClose != nil {
 					m.logger.Errorln("error close gzip", errClose)
 				}
@@ -119,6 +115,31 @@ func (m *Middleware) Gzip(h http.Handler) http.Handler {
 			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 		}
+
+		h.ServeHTTP(w, r)
+	})
+}
+
+func (m *Middleware) Decrypt(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			m.logger.Errorln("failed to read request body:", err)
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		decryptBody, err := m.crypto.Decrypt(data)
+		if err != nil {
+			m.logger.Errorln("failed to decrypt request body:", err)
+			http.Error(w, "invalid encryption", http.StatusBadRequest)
+			return
+		}
+
+		// Подменяем тело запроса на расшифрованное
+		r.Body = io.NopCloser(bytes.NewReader(decryptBody))
+		r.ContentLength = int64(len(decryptBody))
 
 		h.ServeHTTP(w, r)
 	})
