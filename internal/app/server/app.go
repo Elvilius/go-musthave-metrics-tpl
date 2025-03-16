@@ -12,6 +12,7 @@ import (
 	handler "github.com/Elvilius/go-musthave-metrics-tpl/internal/handlers"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/metrics"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/storage"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/crypto"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/middleware"
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
@@ -24,6 +25,7 @@ type AppServer struct {
 	cfg     *config.ServerConfig
 	logger  *zap.SugaredLogger
 	store   *storage.Store
+	crypto  *crypto.Crypto
 }
 
 func New(logger *zap.SugaredLogger) (*AppServer, error) {
@@ -45,6 +47,10 @@ func New(logger *zap.SugaredLogger) (*AppServer, error) {
 	metricsService := metrics.New(mainStore.GetStorage(), logger)
 	handler := handler.NewHandler(cfg, logger, metricsService)
 
+	crypto, err := crypto.New(crypto.Cfg{PrivateKeyPath: cfg.CryptoKey})
+	if err != nil {
+		return nil, err
+	}
 	router := chi.NewRouter()
 
 	server := &AppServer{
@@ -53,14 +59,19 @@ func New(logger *zap.SugaredLogger) (*AppServer, error) {
 		cfg:     cfg,
 		logger:  logger,
 		store:   mainStore,
+		crypto:  crypto,
 	}
 
 	return server, nil
 }
 
 func (a *AppServer) registerRoute() {
-	m := middleware.New(a.cfg, a.logger)
+	m := middleware.New(a.cfg, a.crypto, a.logger)
 	a.router.Use(m.Logging)
+
+	if a.cfg.CryptoKey != "" {
+		a.router.Use(m.Decrypt)
+	}
 	a.router.Use(m.Gzip)
 	a.router.Use(m.VerifyHash)
 	a.router.Handle("/debug/pprof/*", http.DefaultServeMux)

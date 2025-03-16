@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/config"
 	"github.com/Elvilius/go-musthave-metrics-tpl/internal/models"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/api"
+	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/crypto"
 	"github.com/Elvilius/go-musthave-metrics-tpl/pkg/hashing"
 	"go.uber.org/zap"
 )
@@ -20,6 +20,7 @@ type AppAgent struct {
 	logger    *zap.SugaredLogger
 	cfg       *config.AgentConfig
 	api       *api.API
+	crypto    *crypto.Crypto
 	sync.WaitGroup
 }
 
@@ -31,12 +32,17 @@ func New(logger *zap.SugaredLogger) (*AppAgent, error) {
 
 	collector := collector.New(cfg, logger)
 	api := api.New(cfg.ServerAddress, logger)
+	crypto, err := crypto.New(crypto.Cfg{PublicKeyPath: cfg.CryptoKey})
+	if err != nil {
+		return nil, err
+	}
 
 	return &AppAgent{
 		collector: collector,
 		logger:    logger,
 		cfg:       cfg,
 		api:       api,
+		crypto:    crypto,
 	}, nil
 }
 
@@ -50,7 +56,6 @@ func (app *AppAgent) Run(ctx context.Context) {
 	app.RegisterWorker(ctx, sendMetricsCh)
 
 	defer func() {
-		fmt.Println(123123123)
 		cancel()
 		close(metricsCh)
 		close(sendMetricsCh)
@@ -117,6 +122,13 @@ func (app *AppAgent) Worker(ctx context.Context, id int, jobs <-chan []*models.M
 			}
 			if app.cfg.Key != "" {
 				headers["HashSHA256"] = hashing.GenerateHash(app.cfg.Key, body)
+			}
+			if app.cfg.CryptoKey != "" {
+				body, err = app.crypto.Encrypt(body)
+				if err != nil {
+					app.logger.Error(err)
+					continue
+				}
 			}
 			app.api.Fetch(ctx, http.MethodPost, "/update", body, headers)
 		}

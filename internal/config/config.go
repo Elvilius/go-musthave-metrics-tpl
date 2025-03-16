@@ -12,6 +12,7 @@ type AgentConfig struct {
 	PollInterval   int    `env:"POLL_INTERVAL" envDefault:"3"`
 	ReportInterval int    `env:"REPORT_INTERVAL" envDefault:"10"`
 	RateLimit      int    `env:"RATE_LIMIT" envDefault:"3"`
+	CryptoKey      string `env:"CRYPTO_KEY"`
 }
 
 type ServerConfig struct {
@@ -21,6 +22,7 @@ type ServerConfig struct {
 	Key             string `env:"KEY" envDefault:""`
 	StoreInterval   int    `env:"STORE_INTERVAL" envDefault:"300"`
 	Restore         bool   `env:"RESTORE" envDefault:"true"`
+	CryptoKey      string `env:"CRYPTO_KEY"`
 }
 
 func NewAgent(logger *zap.SugaredLogger) (*AgentConfig, error) {
@@ -36,6 +38,7 @@ func NewAgent(logger *zap.SugaredLogger) (*AgentConfig, error) {
 	serverAddress := flag.String("a", cfg.ServerAddress, "server address")
 	secretKey := flag.String("k", cfg.Key, "secret key")
 	rateLimit := flag.Int("l", cfg.RateLimit, "rate limit")
+	cryptoKey := flag.String("c", cfg.CryptoKey, "crypto-key")
 	flag.Parse()
 
 	cfg.PollInterval = *pollInterval
@@ -43,6 +46,7 @@ func NewAgent(logger *zap.SugaredLogger) (*AgentConfig, error) {
 	cfg.ServerAddress = *serverAddress
 	cfg.Key = *secretKey
 	cfg.RateLimit = *rateLimit
+	cfg.CryptoKey = *cryptoKey
 
 	logger.Infoln("Server Address:", cfg.ServerAddress)
 	logger.Infoln("Report Interval:", cfg.ReportInterval)
@@ -66,6 +70,8 @@ func NewServer(logger *zap.SugaredLogger) (*ServerConfig, error) {
 	restore := flag.Bool("r", cfg.Restore, "restore")
 	databaseDsn := flag.String("d", cfg.DatabaseDsn, "database dsn")
 	secretKey := flag.String("k", cfg.Key, "secret key")
+	cryptoKey := flag.String("c", cfg.CryptoKey, "crypto-key")
+
 
 	flag.Parse()
 
@@ -75,6 +81,7 @@ func NewServer(logger *zap.SugaredLogger) (*ServerConfig, error) {
 	cfg.Restore = *restore
 	cfg.DatabaseDsn = *databaseDsn
 	cfg.Key = *secretKey
+	cfg.CryptoKey = *cryptoKey
 
 	logger.Infoln("Server Address:", cfg.Address)
 	logger.Infoln("Store Interval:", cfg.StoreInterval)
