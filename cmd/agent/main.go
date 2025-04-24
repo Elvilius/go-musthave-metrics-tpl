@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"os/signal"
 	"syscall"
 
@@ -36,5 +35,4 @@ func main() {
 	logger.Infof("Build commit=%s \n", BuildCommit)
 
 	agent.Run(ctx)
-	os.Exit(1)
 }
